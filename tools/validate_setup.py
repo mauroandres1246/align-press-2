@@ -161,18 +161,8 @@ def validate_detector_instantiation() -> List[Tuple[bool, str]]:
         with open("config/example_detector.yaml", 'r') as f:
             config_dict = yaml.safe_load(f)
 
-        # Create a minimal valid config for testing (without requiring actual template files)
-        test_config = {
-            "version": 1,
-            "plane": {
-                "width_mm": 300.0,
-                "height_mm": 200.0,
-                "mm_per_px": 0.5
-            },
-            "logos": []  # Empty for now since we don't have actual template files
-        }
-
-        schema = DetectorConfigSchema(**test_config)
+        # Test with the actual configuration file (templates should now exist)
+        schema = DetectorConfigSchema(**config_dict)
         results.append((True, "✅ Detector config schema validation: OK"))
 
     except Exception as e:

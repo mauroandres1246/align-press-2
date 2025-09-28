@@ -48,6 +48,10 @@ dev = [
 
 [project.scripts]
 align-press = "alignpress.cli.main:main"
+align-press-test = "alignpress.cli.test_detector:main"
+align-press-calibrate = "alignpress.cli.calibrate:main"
+align-press-validate = "alignpress.cli.validate_profile:main"
+align-press-benchmark = "alignpress.cli.benchmark:main"
 
 [tool.setuptools.packages.find]
 where = ["."]

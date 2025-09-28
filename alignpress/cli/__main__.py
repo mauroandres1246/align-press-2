@@ -1,12 +1,12 @@
 """
 Entry point for CLI module execution.
 
-This allows running the CLI tools as:
-python -m alignpress.cli.test_detector
+This allows running the main CLI interface as:
+python -m alignpress.cli
 """
 
 import sys
-from .test_detector import main
+from .main import main
 
 if __name__ == '__main__':
     sys.exit(main())

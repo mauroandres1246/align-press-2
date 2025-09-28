@@ -1,0 +1,122 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://align-press.com/schemas/style.schema.json",
+  "title": "Style Profile Schema",
+  "description": "Schema for style profile configuration",
+  "type": "object",
+  "required": ["version", "name", "type", "logos"],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Profile version number"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human-readable style name"
+    },
+    "type": {
+      "type": "string",
+      "enum": ["style"],
+      "description": "Profile type identifier"
+    },
+    "description": {
+      "type": "string",
+      "description": "Style description"
+    },
+    "logos": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name", "template_path", "position_mm", "roi"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Logo identifier"
+          },
+          "template_path": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Path to template image"
+          },
+          "position_mm": {
+            "type": "array",
+            "items": {"type": "number"},
+            "minItems": 2,
+            "maxItems": 2,
+            "description": "Expected position [x, y] in millimeters"
+          },
+          "roi": {
+            "type": "object",
+            "required": ["width_mm", "height_mm"],
+            "properties": {
+              "width_mm": {
+                "type": "number",
+                "minimum": 0,
+                "description": "ROI width in millimeters"
+              },
+              "height_mm": {
+                "type": "number",
+                "minimum": 0,
+                "description": "ROI height in millimeters"
+              },
+              "margin_factor": {
+                "type": "number",
+                "minimum": 1.0,
+                "maximum": 3.0,
+                "default": 1.2,
+                "description": "Margin factor for ROI expansion"
+              }
+            },
+            "additionalProperties": false
+          },
+          "angle_deg": {
+            "type": "number",
+            "minimum": -180,
+            "maximum": 180,
+            "default": 0,
+            "description": "Expected angle in degrees"
+          },
+          "priority": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Detection priority (1 = highest)"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "category": {
+          "type": "string",
+          "description": "Style category (e.g., 'polos', 'camisetas')"
+        },
+        "target_fabric": {
+          "type": "string",
+          "description": "Target fabric type"
+        },
+        "typical_colors": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Typical colors for this style"
+        },
+        "created_date": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Creation date (YYYY-MM-DD)"
+        },
+        "created_by": {
+          "type": "string",
+          "description": "Creator identifier"
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,201 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://align-press.com/schemas/detector.schema.json",
+  "title": "Detector Configuration Schema",
+  "description": "Schema for detector configuration",
+  "type": "object",
+  "required": ["version", "plane", "logos"],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Configuration version number"
+    },
+    "plane": {
+      "type": "object",
+      "required": ["width_mm", "height_mm", "mm_per_px"],
+      "properties": {
+        "width_mm": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Platen width in millimeters"
+        },
+        "height_mm": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Platen height in millimeters"
+        },
+        "mm_per_px": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Scale factor: millimeters per pixel"
+        }
+      },
+      "additionalProperties": false
+    },
+    "logos": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name", "template_path", "position_mm", "roi"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Logo identifier"
+          },
+          "template_path": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Path to template image"
+          },
+          "position_mm": {
+            "type": "array",
+            "items": {"type": "number"},
+            "minItems": 2,
+            "maxItems": 2,
+            "description": "Expected position [x, y] in millimeters"
+          },
+          "roi": {
+            "type": "object",
+            "required": ["width_mm", "height_mm"],
+            "properties": {
+              "width_mm": {
+                "type": "number",
+                "minimum": 0,
+                "description": "ROI width in millimeters"
+              },
+              "height_mm": {
+                "type": "number",
+                "minimum": 0,
+                "description": "ROI height in millimeters"
+              },
+              "margin_factor": {
+                "type": "number",
+                "minimum": 1.0,
+                "maximum": 3.0,
+                "default": 1.2,
+                "description": "Margin factor for ROI expansion"
+              }
+            },
+            "additionalProperties": false
+          },
+          "angle_deg": {
+            "type": "number",
+            "minimum": -180,
+            "maximum": 180,
+            "default": 0,
+            "description": "Expected angle in degrees"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "thresholds": {
+      "type": "object",
+      "properties": {
+        "position_tolerance_mm": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 20,
+          "default": 3.0,
+          "description": "Position tolerance in millimeters"
+        },
+        "angle_tolerance_deg": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 45,
+          "default": 5.0,
+          "description": "Angle tolerance in degrees"
+        },
+        "min_inliers": {
+          "type": "integer",
+          "minimum": 4,
+          "default": 15,
+          "description": "Minimum RANSAC inliers required"
+        },
+        "max_reproj_error": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10,
+          "default": 3.0,
+          "description": "Maximum reprojection error in pixels"
+        }
+      },
+      "additionalProperties": false
+    },
+    "features": {
+      "type": "object",
+      "properties": {
+        "feature_type": {
+          "type": "string",
+          "enum": ["ORB", "AKAZE", "SIFT"],
+          "default": "ORB",
+          "description": "Feature detection algorithm"
+        },
+        "nfeatures": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 10000,
+          "default": 1500,
+          "description": "Maximum number of features to detect"
+        },
+        "scale_factor": {
+          "type": "number",
+          "minimum": 1.0,
+          "maximum": 2.0,
+          "default": 1.2,
+          "description": "Pyramid decimation ratio for ORB"
+        },
+        "nlevels": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20,
+          "default": 8,
+          "description": "Number of pyramid levels for ORB"
+        }
+      },
+      "additionalProperties": false
+    },
+    "fallback": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable fallback template matching"
+        },
+        "scales": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": 0.1,
+            "maximum": 3.0
+          },
+          "default": [0.8, 0.9, 1.0, 1.1, 1.2],
+          "description": "Scale factors to try"
+        },
+        "angles": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": -180,
+            "maximum": 180
+          },
+          "default": [-10, -5, 0, 5, 10],
+          "description": "Angles in degrees to try"
+        },
+        "match_threshold": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 1.0,
+          "default": 0.7,
+          "description": "Template matching threshold"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

@@ -11,7 +11,7 @@ from typing import Dict, List, Optional, Tuple, Union, Any
 from enum import Enum
 
 import numpy as np
-from pydantic import BaseModel, Field, validator, root_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class FeatureType(str, Enum):
@@ -43,14 +43,15 @@ class PlaneConfigSchema(BaseModel):
     height_mm: float = Field(..., gt=0, description="Platen height in millimeters")
     mm_per_px: float = Field(..., gt=0, description="Scale factor: millimeters per pixel")
 
-    class Config:
-        schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "example": {
                 "width_mm": 300.0,
                 "height_mm": 200.0,
                 "mm_per_px": 0.5
             }
         }
+    }
 
     @property
     def width_px(self) -> int:
@@ -75,14 +76,15 @@ class ROIConfigSchema(BaseModel):
         description="Margin factor for ROI expansion"
     )
 
-    class Config:
-        schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "example": {
                 "width_mm": 50.0,
                 "height_mm": 40.0,
                 "margin_factor": 1.2
             }
         }
+    }
 
 
 class LogoSpecSchema(BaseModel):
@@ -94,8 +96,8 @@ class LogoSpecSchema(BaseModel):
     roi: ROIConfigSchema = Field(..., description="Region of interest configuration")
     angle_deg: float = Field(default=0.0, description="Expected angle in degrees")
 
-    class Config:
-        schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "example": {
                 "name": "pecho",
                 "template_path": "templates/logo_pecho.png",
@@ -108,8 +110,10 @@ class LogoSpecSchema(BaseModel):
                 "angle_deg": 0.0
             }
         }
+    }
 
-    @validator('template_path')
+    @field_validator('template_path')
+    @classmethod
     def template_must_exist(cls, v):
         """Validate that template file exists."""
         if not v.exists():
@@ -118,7 +122,8 @@ class LogoSpecSchema(BaseModel):
             raise ValueError(f"Invalid template format: {v.suffix}")
         return v
 
-    @validator('position_mm')
+    @field_validator('position_mm')
+    @classmethod
     def position_must_be_positive(cls, v):
         """Validate that position coordinates are non-negative."""
         x, y = v
@@ -154,8 +159,8 @@ class ThresholdsSchema(BaseModel):
         description="Maximum reprojection error in pixels"
     )
 
-    class Config:
-        schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "example": {
                 "position_tolerance_mm": 3.0,
                 "angle_tolerance_deg": 5.0,
@@ -163,6 +168,7 @@ class ThresholdsSchema(BaseModel):
                 "max_reproj_error": 3.0
             }
         }
+    }
 
 
 class FeatureParamsSchema(BaseModel):
@@ -188,8 +194,8 @@ class FeatureParamsSchema(BaseModel):
         description="Number of pyramid levels for ORB"
     )
 
-    class Config:
-        schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "example": {
                 "feature_type": "ORB",
                 "nfeatures": 1500,
@@ -197,6 +203,7 @@ class FeatureParamsSchema(BaseModel):
                 "nlevels": 8
             }
         }
+    }
 
 
 class FallbackParamsSchema(BaseModel):
@@ -218,8 +225,8 @@ class FallbackParamsSchema(BaseModel):
         description="Template matching threshold"
     )
 
-    class Config:
-        schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "example": {
                 "enabled": True,
                 "scales": [0.8, 0.9, 1.0, 1.1, 1.2],
@@ -227,8 +234,10 @@ class FallbackParamsSchema(BaseModel):
                 "match_threshold": 0.7
             }
         }
+    }
 
-    @validator('scales')
+    @field_validator('scales')
+    @classmethod
     def scales_must_be_positive(cls, v):
         """Validate that all scales are positive."""
         if any(s <= 0 for s in v):
@@ -241,13 +250,13 @@ class DetectorConfigSchema(BaseModel):
 
     version: int = Field(default=1, description="Configuration version")
     plane: PlaneConfigSchema = Field(..., description="Platen configuration")
-    logos: List[LogoSpecSchema] = Field(..., min_items=1, description="Logo specifications")
+    logos: List[LogoSpecSchema] = Field(..., min_length=1, description="Logo specifications")
     thresholds: ThresholdsSchema = Field(default_factory=ThresholdsSchema)
     features: FeatureParamsSchema = Field(default_factory=FeatureParamsSchema)
     fallback: FallbackParamsSchema = Field(default_factory=FallbackParamsSchema)
 
-    class Config:
-        schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "example": {
                 "version": 1,
                 "plane": {
@@ -270,15 +279,17 @@ class DetectorConfigSchema(BaseModel):
                 ]
             }
         }
+    }
 
-    @root_validator
-    def validate_logos_in_plane(cls, values):
+    @model_validator(mode='after')
+    @classmethod
+    def validate_logos_in_plane(cls, model):
         """Validate that all logos fit within the platen."""
-        plane = values.get('plane')
-        logos = values.get('logos', [])
+        plane = model.plane
+        logos = model.logos
 
         if not plane or not logos:
-            return values
+            return model
 
         for logo in logos:
             x, y = logo.position_mm
@@ -294,9 +305,10 @@ class DetectorConfigSchema(BaseModel):
                     f"Platen: {plane.width_mm}x{plane.height_mm}"
                 )
 
-        return values
+        return model
 
-    @validator('logos')
+    @field_validator('logos')
+    @classmethod
     def logo_names_must_be_unique(cls, v):
         """Validate that logo names are unique."""
         names = [logo.name for logo in v]
@@ -317,8 +329,8 @@ class CalibrationDataSchema(BaseModel):
     pattern_info: Dict[str, Any] = Field(default_factory=dict, description="Calibration pattern metadata")
     quality_metrics: Dict[str, float] = Field(default_factory=dict, description="Quality metrics")
 
-    class Config:
-        schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "example": {
                 "version": 1,
                 "timestamp": "2025-09-28T14:30:00Z",
@@ -341,8 +353,10 @@ class CalibrationDataSchema(BaseModel):
                 }
             }
         }
+    }
 
-    @validator('homography')
+    @field_validator('homography')
+    @classmethod
     def homography_must_be_3x3(cls, v):
         """Validate homography matrix dimensions."""
         if len(v) != 3 or any(len(row) != 3 for row in v):
@@ -380,8 +394,8 @@ class LogoResultSchema(BaseModel):
     method_used: Optional[str] = Field(None, description="Detection method used")
     processing_time_ms: Optional[float] = Field(None, ge=0, description="Processing time in milliseconds")
 
-    class Config:
-        schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "example": {
                 "logo_name": "pecho",
                 "found": True,
@@ -396,6 +410,7 @@ class LogoResultSchema(BaseModel):
                 "processing_time_ms": 15.6
             }
         }
+    }
 
     @property
     def is_within_tolerance(self) -> bool:
@@ -444,8 +459,8 @@ class AppConfigSchema(BaseModel):
     log_format: str = Field(default="json", description="Log format")
     log_output_path: Path = Field(default=Path("logs/sessions"), description="Log output directory")
 
-    class Config:
-        schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "example": {
                 "version": 1,
                 "language": "es",
@@ -457,11 +472,12 @@ class AppConfigSchema(BaseModel):
                 "log_level": "INFO"
             }
         }
+    }
 
-    @validator('calibration_warning_days')
-    def warning_days_less_than_max_age(cls, v, values):
+    @model_validator(mode='after')
+    @classmethod
+    def warning_days_less_than_max_age(cls, model):
         """Validate that warning comes before expiration."""
-        max_age = values.get('calibration_max_age_days')
-        if max_age and v >= max_age:
+        if model.calibration_warning_days >= model.calibration_max_age_days:
             raise ValueError("Warning days must be less than max age days")
-        return v
+        return model
