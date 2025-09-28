@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "timestamp": "2025-09-28T14:30:00Z",
+  "camera_id": 0,
+  "homography": [
+    [1.0, 0.0, 0.0],
+    [0.0, 1.0, 0.0],
+    [0.0, 0.0, 1.0]
+  ],
+  "mm_per_px": 0.5,
+  "pattern_info": {
+    "type": "chessboard",
+    "size": [9, 6],
+    "square_size_mm": 25.0
+  },
+  "quality_metrics": {
+    "reproj_error_px": 0.8,
+    "corners_detected": 54,
+    "corners_expected": 54
+  }
+}

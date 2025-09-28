@@ -1,0 +1,20 @@
+version: 1
+name: "Plancha Estándar 300x200"
+type: "platen"
+
+dimensions_mm:
+  width: 300.0
+  height: 200.0
+
+calibration:
+  camera_id: 0
+  last_calibrated: "2025-09-28T10:00:00Z"
+  homography_path: "calibration/camera_0/homography.json"
+  mm_per_px: 0.5
+
+metadata:
+  description: "Plancha estándar para polos y camisetas"
+  max_temperature_c: 180
+  pressure_bar: 6.0
+  created_date: "2025-09-28"
+  created_by: "setup"

@@ -1,0 +1,40 @@
+version: 1
+name: "Talla M"
+type: "size_variant"
+
+description: "Ajustes de posición para talla M"
+
+# Offsets relativos a las posiciones base (en mm)
+position_offsets:
+  pecho:
+    dx_mm: 0.0
+    dy_mm: 0.0
+
+  manga_izq:
+    dx_mm: -2.0  # Ligeramente más hacia adentro
+    dy_mm: 0.0
+
+  manga_der:
+    dx_mm: 2.0   # Ligeramente más hacia adentro
+    dy_mm: 0.0
+
+# Ajustes de ROI si es necesario
+roi_adjustments:
+  pecho:
+    width_factor: 1.0
+    height_factor: 1.0
+
+  manga_izq:
+    width_factor: 0.95
+    height_factor: 0.95
+
+  manga_der:
+    width_factor: 0.95
+    height_factor: 0.95
+
+metadata:
+  applicable_styles: ["polo_basico", "camiseta_basica"]
+  size_category: "adult"
+  chest_width_cm: 52
+  created_date: "2025-09-28"
+  created_by: "setup"

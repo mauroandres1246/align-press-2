@@ -1,0 +1,29 @@
+version: 1
+language: "es"
+
+paths:
+  profiles: "profiles"
+  templates: "templates"
+  calibration: "calibration"
+  datasets: "datasets"
+  logs: "logs"
+
+ui:
+  theme: "light"  # light|dark
+  technical_pin: "2468"
+  fullscreen: false
+  fps_target: 30
+
+detector:
+  feature_type: "ORB"
+  nfeatures: 1500
+  fallback_enabled: true
+
+calibration:
+  max_age_days: 30
+  warning_days: 7
+
+logging:
+  level: "INFO"
+  format: "json"
+  output: "logs/sessions/"
