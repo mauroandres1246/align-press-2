@@ -2,7 +2,7 @@
 Image processing utility functions for logo detection.
 
 This module provides common image operations including coordinate conversions,
-ROI extraction, and perspective warping utilities.
+ROI extraction, perspective warping utilities, and PNG transparency support.
 """
 
 from typing import Tuple, Optional, Union
@@ -338,3 +338,312 @@ def calculate_image_sharpness(img: np.ndarray) -> float:
     # Calculate Laplacian variance
     laplacian = cv2.Laplacian(gray, cv2.CV_64F)
     return laplacian.var()
+
+
+# ============================================================================
+# PNG Transparency Support Functions
+# ============================================================================
+
+def load_image_with_alpha(image_path: str) -> Tuple[np.ndarray, Optional[np.ndarray]]:
+    """
+    Load image preserving alpha channel if present.
+
+    Args:
+        image_path: Path to image file
+
+    Returns:
+        Tuple of (image, alpha_mask) where:
+        - image: RGB/BGR image (3 channels)
+        - alpha_mask: Alpha channel as mask (None if no alpha)
+    """
+    # Load with all channels
+    img_with_alpha = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
+
+    if img_with_alpha is None:
+        raise ValueError(f"Could not load image: {image_path}")
+
+    # Check if image has alpha channel
+    if len(img_with_alpha.shape) == 3 and img_with_alpha.shape[2] == 4:
+        # RGBA image - separate RGB and alpha
+        rgb_image = img_with_alpha[:, :, :3]  # First 3 channels (BGR)
+        alpha_channel = img_with_alpha[:, :, 3]  # Alpha channel
+
+        # Create binary mask from alpha (transparent areas = 0, opaque = 255)
+        alpha_mask = np.where(alpha_channel > 127, 255, 0).astype(np.uint8)
+
+        return rgb_image, alpha_mask
+
+    elif len(img_with_alpha.shape) == 3 and img_with_alpha.shape[2] == 3:
+        # RGB image - no alpha channel
+        return img_with_alpha, None
+
+    elif len(img_with_alpha.shape) == 2:
+        # Grayscale image - convert to 3 channel
+        rgb_image = cv2.cvtColor(img_with_alpha, cv2.COLOR_GRAY2BGR)
+        return rgb_image, None
+
+    else:
+        raise ValueError(f"Unsupported image format: {img_with_alpha.shape}")
+
+
+def create_mask_from_alpha(alpha_channel: np.ndarray, threshold: int = 127) -> np.ndarray:
+    """
+    Create binary mask from alpha channel.
+
+    Args:
+        alpha_channel: Alpha channel (0-255)
+        threshold: Threshold for transparency (default: 127)
+
+    Returns:
+        Binary mask (0 or 255)
+    """
+    return np.where(alpha_channel > threshold, 255, 0).astype(np.uint8)
+
+
+def remove_background_auto(image: np.ndarray, method: str = "contour") -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Automatically remove background from logo image.
+
+    Args:
+        image: Input BGR image
+        method: Method to use ("contour", "grabcut", "threshold")
+
+    Returns:
+        Tuple of (processed_image, mask) where:
+        - processed_image: Image with background removed (transparent PNG)
+        - mask: Binary mask of foreground
+    """
+    if method == "contour":
+        return _remove_background_contour(image)
+    elif method == "grabcut":
+        return _remove_background_grabcut(image)
+    elif method == "threshold":
+        return _remove_background_threshold(image)
+    else:
+        raise ValueError(f"Unknown background removal method: {method}")
+
+
+def _remove_background_contour(image: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    """Remove background using contour detection."""
+    # Convert to grayscale
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+    # Apply threshold to get binary image
+    _, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+
+    # Find contours
+    contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    if not contours:
+        # If no contours found, return original image
+        mask = np.ones(gray.shape, dtype=np.uint8) * 255
+        return image, mask
+
+    # Find largest contour (assuming it's the logo)
+    largest_contour = max(contours, key=cv2.contourArea)
+
+    # Create mask from contour
+    mask = np.zeros(gray.shape, dtype=np.uint8)
+    cv2.fillPoly(mask, [largest_contour], 255)
+
+    # Apply morphological operations to clean up mask
+    kernel = np.ones((3, 3), np.uint8)
+    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
+
+    # Create result image with alpha channel
+    result = np.dstack([image, mask])
+
+    return result, mask
+
+
+def _remove_background_threshold(image: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    """Remove background using adaptive thresholding."""
+    # Convert to grayscale
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+    # Use adaptive threshold to separate foreground/background
+    binary = cv2.adaptiveThreshold(
+        gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2
+    )
+
+    # Invert if background is darker than foreground
+    if np.mean(binary) > 127:
+        binary = cv2.bitwise_not(binary)
+
+    # Clean up with morphological operations
+    kernel = np.ones((2, 2), np.uint8)
+    mask = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel)
+
+    # Create result with alpha
+    result = np.dstack([image, mask])
+
+    return result, mask
+
+
+def _remove_background_grabcut(image: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    """Remove background using GrabCut algorithm."""
+    height, width = image.shape[:2]
+
+    # Create rectangle around image center (assuming logo is centered)
+    margin = min(width, height) // 8
+    rect = (margin, margin, width - 2*margin, height - 2*margin)
+
+    # Initialize mask
+    mask = np.zeros((height, width), np.uint8)
+
+    # GrabCut background and foreground models
+    bgd_model = np.zeros((1, 65), np.float64)
+    fgd_model = np.zeros((1, 65), np.float64)
+
+    # Run GrabCut
+    cv2.grabCut(image, mask, rect, bgd_model, fgd_model, 5, cv2.GC_INIT_WITH_RECT)
+
+    # Create final mask
+    final_mask = np.where((mask == 2) | (mask == 0), 0, 255).astype(np.uint8)
+
+    # Create result with alpha
+    result = np.dstack([image, final_mask])
+
+    return result, final_mask
+
+
+def enhance_logo_contrast(image: np.ndarray, mask: Optional[np.ndarray] = None) -> np.ndarray:
+    """
+    Enhance contrast specifically for logo detection.
+
+    Args:
+        image: Input image (grayscale or BGR)
+        mask: Optional mask to limit enhancement to specific regions
+
+    Returns:
+        Enhanced image (same format as input)
+    """
+    if len(image.shape) not in [2, 3]:
+        raise ValueError("Image must be grayscale or color")
+
+    # Apply CLAHE for contrast enhancement
+    clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
+
+    if len(image.shape) == 2:
+        # Grayscale image
+        if mask is not None:
+            # Apply enhancement only to masked regions
+            enhanced = image.copy()
+            mask_indices = mask > 0
+            if np.any(mask_indices):
+                enhanced[mask_indices] = clahe.apply(image[mask_indices].reshape(-1)).reshape(-1)
+        else:
+            # Apply to entire image
+            enhanced = clahe.apply(image)
+        return enhanced
+
+    else:
+        # Color image - convert to LAB color space for better contrast enhancement
+        lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
+        l, a, b = cv2.split(lab)
+
+        if mask is not None:
+            # Apply enhancement only to masked regions
+            l_enhanced = l.copy()
+            mask_indices = mask > 0
+            if np.any(mask_indices):
+                l_enhanced[mask_indices] = clahe.apply(l[mask_indices].reshape(-1)).reshape(-1)
+        else:
+            # Apply to entire image
+            l_enhanced = clahe.apply(l)
+
+        # Merge channels and convert back
+        enhanced_lab = cv2.merge([l_enhanced, a, b])
+        enhanced_bgr = cv2.cvtColor(enhanced_lab, cv2.COLOR_LAB2BGR)
+        return enhanced_bgr
+
+
+def save_image_with_alpha(image: np.ndarray, output_path: str, alpha_mask: Optional[np.ndarray] = None) -> bool:
+    """
+    Save image with alpha channel as PNG.
+
+    Args:
+        image: BGR image (3 channels)
+        output_path: Output file path (should be .png)
+        alpha_mask: Optional alpha mask (0-255)
+
+    Returns:
+        True if saved successfully
+    """
+    try:
+        if alpha_mask is not None:
+            # Combine BGR image with alpha mask
+            rgba_image = np.dstack([image, alpha_mask])
+            success = cv2.imwrite(output_path, rgba_image)
+        else:
+            # Save as regular BGR image
+            success = cv2.imwrite(output_path, image)
+
+        return success
+    except Exception:
+        return False
+
+
+def has_transparency(image_path: str) -> bool:
+    """
+    Check if image file has transparency (alpha channel).
+
+    Args:
+        image_path: Path to image file
+
+    Returns:
+        True if image has alpha channel
+    """
+    try:
+        img = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
+        if img is None:
+            return False
+
+        # Check if 4 channels (RGBA)
+        return len(img.shape) == 3 and img.shape[2] == 4
+    except Exception:
+        return False
+
+
+def get_image_info(image_path: str) -> dict:
+    """
+    Get comprehensive information about an image file.
+
+    Args:
+        image_path: Path to image file
+
+    Returns:
+        Dictionary with image information
+    """
+    try:
+        # Load with all channels preserved
+        img = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
+        if img is None:
+            return {"error": "Could not load image"}
+
+        info = {
+            "path": image_path,
+            "shape": img.shape,
+            "dtype": str(img.dtype),
+            "has_alpha": len(img.shape) == 3 and img.shape[2] == 4,
+            "is_grayscale": len(img.shape) == 2,
+            "is_color": len(img.shape) == 3 and img.shape[2] >= 3,
+        }
+
+        # Additional info for color images
+        if info["is_color"]:
+            info["channels"] = img.shape[2]
+            if info["has_alpha"]:
+                alpha_channel = img[:, :, 3]
+                info["alpha_stats"] = {
+                    "min": int(alpha_channel.min()),
+                    "max": int(alpha_channel.max()),
+                    "mean": float(alpha_channel.mean()),
+                    "has_transparency": alpha_channel.min() < 255
+                }
+
+        return info
+
+    except Exception as e:
+        return {"error": str(e)}

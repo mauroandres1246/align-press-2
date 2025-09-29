@@ -72,25 +72,28 @@ pytest --cov=alignpress --cov-report=html
 pytest -m "not slow"
 ```
 
-### Probar el detector CLI
+### Probar el CLI completo
 
 ```bash
-# Ayuda del CLI
-python3 -m alignpress.cli.test_detector --help
+# Ayuda del CLI principal
+python3 -m alignpress.cli.main --help
 
 # Ejemplo con imagen estática (necesita templates generados)
-python3 -m alignpress.cli.test_detector \
+python3 -m alignpress.cli.main test \
   --config config/example_detector.yaml \
   --image datasets/test_001.jpg \
   --save-debug output/debug_001.jpg \
   --verbose
 
 # Ejemplo con cámara en vivo
-python3 -m alignpress.cli.test_detector \
+python3 -m alignpress.cli.main test \
   --config config/example_detector.yaml \
   --camera 0 \
   --show \
   --fps 30
+
+# Validar configuraciones
+python3 -m alignpress.cli.main validate config/ --recursive
 ```
 
 ## 📁 Estructura del Proyecto
@@ -105,7 +108,11 @@ align-press-v2/
 │   │   ├── geometry.py       #     📐 Funciones geométricas
 │   │   └── image_utils.py    #     🖼️ Procesamiento de imágenes
 │   ├── cli/                  #   💻 Herramientas CLI
-│   │   └── test_detector.py  #     🧪 CLI para testing
+│   │   ├── main.py           #     🎯 CLI principal unificado
+│   │   ├── test_detector.py  #     🧪 Testing con imágenes/cámara
+│   │   ├── calibrate.py      #     📐 Calibración de cámara
+│   │   ├── validate_profile.py #   ✅ Validación de perfiles
+│   │   └── benchmark.py      #     📊 Análisis de rendimiento
 │   └── ui/                   #   🖥️ Interfaz gráfica (futuro)
 ├── config/                   # ⚙️ Configuraciones
 │   ├── app.yaml              #   🎛️ Config de la aplicación
@@ -220,10 +227,12 @@ pytest -k "not image_utils and not detector"
 ## 📈 Próximos Pasos
 
 1. **Generar templates reales** - Reemplazar templates sintéticos con imágenes reales
-2. **Calibrar cámara** - Usar el CLI de calibración (cuando esté implementado)
+2. **✅ Calibrar cámara** - Usar el CLI de calibración (ya implementado)
 3. **Configurar perfiles** - Crear perfiles específicos para tus planchas/estilos
 4. **Testing con datos reales** - Probar con imágenes de tu setup real
-5. **UI Development** - Implementar la interfaz gráfica (Fase 3)
+5. **Benchmarks** - Analizar rendimiento con el CLI de benchmark
+6. **Validación automática** - Usar CLI de validación para verificar configuraciones
+7. **UI Development** - Implementar la interfaz gráfica (Fase 3)
 
 ## 🆘 Soporte
 
@@ -236,5 +245,5 @@ Si encuentras problemas:
 
 ---
 
-**Estado actual**: ✅ Core implementado - Fase 0 y parte de Fase 1 completadas
-**Próximo milestone**: CLI tools completos y tests de integración
+**Estado actual**: ✅ Core implementado - Fase 0 y Fase 1 100% completadas
+**Próximo milestone**: Fase 2 - Core Business Logic (profiles, compositions, job cards)

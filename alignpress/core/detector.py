@@ -16,7 +16,8 @@ import numpy as np
 from ..utils.geometry import angle_deg, l2, polygon_center, angle_diff_circular
 from ..utils.image_utils import (
     mm_to_px, px_to_mm, extract_roi, warp_perspective,
-    convert_color_safe, enhance_contrast
+    convert_color_safe, enhance_contrast, load_image_with_alpha,
+    enhance_logo_contrast, has_transparency, get_image_info
 )
 from .schemas import (
     DetectorConfigSchema, LogoSpecSchema, PlaneConfigSchema,
@@ -59,6 +60,7 @@ class PlanarLogoDetector:
         self._templates = {}
         self._template_keypoints = {}
         self._template_descriptors = {}
+        self._template_alpha_masks = {}
 
         self._load_templates()
 
@@ -103,20 +105,20 @@ class PlanarLogoDetector:
                 raise
 
     def _load_single_template(self, logo_spec: LogoSpecSchema) -> None:
-        """Load and process a single template image."""
+        """Load and process a single template image with transparency support."""
         template_path = Path(logo_spec.template_path)
 
         if not template_path.exists():
             raise FileNotFoundError(f"Template not found: {template_path}")
 
-        # Load template image
-        template = cv2.imread(str(template_path), cv2.IMREAD_COLOR)
+        # Load template image with alpha channel support
+        template, alpha_mask = load_image_with_alpha(str(template_path))
         if template is None:
             raise ValueError(f"Could not load template image: {template_path}")
 
-        # Convert to grayscale and enhance
+        # Convert to grayscale and enhance (with alpha consideration)
         template_gray = convert_color_safe(template, cv2.COLOR_BGR2GRAY)
-        template_enhanced = enhance_contrast(template_gray)
+        template_enhanced = enhance_logo_contrast(template_gray, alpha_mask)
 
         # Detect features
         keypoints, descriptors = self._feature_detector.detectAndCompute(template_enhanced, None)
@@ -127,10 +129,11 @@ class PlanarLogoDetector:
                 f"({len(keypoints) if keypoints else 0}). Consider using a different template."
             )
 
-        # Store template data
+        # Store template data including alpha mask
         self._templates[logo_spec.name] = template_enhanced
         self._template_keypoints[logo_spec.name] = keypoints
         self._template_descriptors[logo_spec.name] = descriptors
+        self._template_alpha_masks[logo_spec.name] = alpha_mask
 
         logger.debug(f"Loaded template {logo_spec.name}: {len(keypoints)} features")
 

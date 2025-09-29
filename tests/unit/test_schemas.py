@@ -126,6 +126,120 @@ class TestLogoSpecSchema:
                 roi=ROIConfigSchema(width_mm=50.0, height_mm=40.0)
             )
 
+    def test_logo_spec_with_transparency_fields(self):
+        """Test logo spec with transparency fields."""
+        logo = LogoSpecSchema(
+            name="transparent_logo",
+            template_path=self.template_path,
+            position_mm=(150.0, 100.0),
+            roi=ROIConfigSchema(width_mm=50.0, height_mm=40.0),
+            has_transparency=True,
+            transparency_method="contour"
+        )
+
+        assert logo.has_transparency is True
+        assert logo.transparency_method == "contour"
+
+    def test_logo_spec_transparency_defaults(self):
+        """Test logo spec transparency field defaults."""
+        logo = LogoSpecSchema(
+            name="test_logo",
+            template_path=self.template_path,
+            position_mm=(150.0, 100.0),
+            roi=ROIConfigSchema(width_mm=50.0, height_mm=40.0)
+        )
+
+        # Defaults should be None
+        assert logo.has_transparency is None
+        assert logo.transparency_method is None
+
+    def test_logo_spec_valid_transparency_methods(self):
+        """Test valid transparency methods."""
+        valid_methods = ["contour", "threshold", "grabcut"]
+
+        for method in valid_methods:
+            logo = LogoSpecSchema(
+                name="test_logo",
+                template_path=self.template_path,
+                position_mm=(150.0, 100.0),
+                roi=ROIConfigSchema(width_mm=50.0, height_mm=40.0),
+                transparency_method=method
+            )
+            assert logo.transparency_method == method
+
+    def test_logo_spec_invalid_transparency_method(self):
+        """Test invalid transparency method."""
+        with pytest.raises(ValueError, match="transparency_method must be one of"):
+            LogoSpecSchema(
+                name="test_logo",
+                template_path=self.template_path,
+                position_mm=(150.0, 100.0),
+                roi=ROIConfigSchema(width_mm=50.0, height_mm=40.0),
+                transparency_method="invalid_method"
+            )
+
+    def test_logo_spec_transparency_method_without_flag(self):
+        """Test setting transparency method without has_transparency flag."""
+        # Should be valid - transparency_method can exist without has_transparency
+        logo = LogoSpecSchema(
+            name="test_logo",
+            template_path=self.template_path,
+            position_mm=(150.0, 100.0),
+            roi=ROIConfigSchema(width_mm=50.0, height_mm=40.0),
+            transparency_method="threshold"
+        )
+
+        assert logo.has_transparency is None
+        assert logo.transparency_method == "threshold"
+
+    def test_logo_spec_has_transparency_without_method(self):
+        """Test setting has_transparency without method."""
+        # Should be valid - has_transparency can exist without method
+        logo = LogoSpecSchema(
+            name="test_logo",
+            template_path=self.template_path,
+            position_mm=(150.0, 100.0),
+            roi=ROIConfigSchema(width_mm=50.0, height_mm=40.0),
+            has_transparency=True
+        )
+
+        assert logo.has_transparency is True
+        assert logo.transparency_method is None
+
+    def test_logo_spec_serialization_with_transparency(self):
+        """Test serialization/deserialization with transparency fields."""
+        logo = LogoSpecSchema(
+            name="transparent_logo",
+            template_path=self.template_path,
+            position_mm=(150.0, 100.0),
+            roi=ROIConfigSchema(width_mm=50.0, height_mm=40.0),
+            has_transparency=True,
+            transparency_method="contour"
+        )
+
+        # Serialize to dict
+        logo_dict = logo.model_dump()
+        assert logo_dict["has_transparency"] is True
+        assert logo_dict["transparency_method"] == "contour"
+
+        # Deserialize from dict
+        logo_restored = LogoSpecSchema.model_validate(logo_dict)
+        assert logo_restored.has_transparency is True
+        assert logo_restored.transparency_method == "contour"
+
+    def test_logo_spec_json_schema_includes_transparency(self):
+        """Test that JSON schema includes transparency fields."""
+        schema = LogoSpecSchema.model_json_schema()
+
+        properties = schema["properties"]
+        assert "has_transparency" in properties
+        assert "transparency_method" in properties
+
+        # Check that transparency_method includes proper description
+        transparency_prop = properties["transparency_method"]
+        assert "description" in transparency_prop
+        assert "background removal" in transparency_prop["description"].lower()
+
 
 class TestThresholdsSchema:
     """Test ThresholdsSchema validation."""

@@ -7,10 +7,10 @@ Pipeline robusto OpenCV + ORB para Raspberry Pi con UI operador/técnico.
 ## 🎯 Estado del Proyecto
 
 ```
-[████████░░░░░░░░░░░░] 40% Completado
+[██████████░░░░░░░░░░] 50% Completado
 
 ✅ Fase 0: Refactoring del Detector    [██████████] 100%
-✅ Fase 1: CLI Tools                   [████████░░]  80%
+✅ Fase 1: CLI Tools & Infrastructure  [██████████] 100%
 ⏸️ Fase 2: Core Business Logic         [░░░░░░░░░░]   0%
 ⏸️ Fase 3: UI Operador (MVP)           [░░░░░░░░░░]   0%
 ⏸️ Fase 4: UI Técnico                  [░░░░░░░░░░]   0%
@@ -20,10 +20,13 @@ Pipeline robusto OpenCV + ORB para Raspberry Pi con UI operador/técnico.
 **Componentes completados:**
 - ✅ Detector ORB + RANSAC con fallback template matching
 - ✅ Utilidades geométricas y de procesamiento de imagen
-- ✅ Schemas Pydantic para validación robusta
-- ✅ CLI para testing del detector
-- ✅ Tests unitarios completos
-- ✅ Configuraciones de ejemplo
+- ✅ Schemas Pydantic v2 para validación robusta
+- ✅ CLI completo (test, calibrate, validate, benchmark)
+- ✅ Configuration management centralizado
+- ✅ Structured logging con structlog
+- ✅ JSON schemas para validación de configuraciones
+- ✅ Tests de integración completos
+- ✅ Documentación exhaustiva CLI tools
 
 ## 🚀 Instalación Rápida
 
@@ -37,12 +40,46 @@ python3 tools/validate_setup.py
 # 3. Generar templates de prueba
 python3 tools/create_test_templates.py
 
-# 4. Probar el detector
-python3 -m alignpress.cli.test_detector \
+# 4. Probar el CLI principal
+python3 -m alignpress.cli.main --help
+
+# 5. Probar el detector con imagen
+python3 -m alignpress.cli.main test \
   --config config/example_detector.yaml \
   --image datasets/test_001.jpg \
   --verbose
+
+# 6. Validar configuraciones
+python3 -m alignpress.cli.main validate config/ --recursive
+
+# 🎯 TESTING CON TU PLANCHA REAL (50cm x 60cm)
+# Script simplificado para tu setup específico
+python3 tools/testing/quick_test_your_platen.py
 ```
+
+## 🧪 Testing con Plancha Real
+
+Para probar el sistema con tu plancha de **50cm x 60cm**:
+
+```bash
+# Opción 1: Script rápido simplificado
+python3 tools/testing/quick_test_your_platen.py
+
+# Opción 2: Workflow completo automatizado
+python3 tools/testing/complete_testing_workflow.py \
+  --calibration-image datasets/calibration/platen_with_chessboard.jpg \
+  --logo-image datasets/real_templates/logo_source.jpg \
+  --pattern-size 9 6 \
+  --square-size-mm 25.0 \
+  --logo-position-mm 250 300
+```
+
+**Imágenes requeridas:**
+1. **Calibración**: Foto de tu plancha con patrón de ajedrez 9x6 (cuadros de 25mm)
+2. **Logo template**: Imagen clara del logo a detectar
+3. **Testing**: Fotos con logo en diferentes posiciones
+
+Ver detalles completos en [`tools/testing/README.md`](tools/testing/README.md)
 
 ## 📁 Estructura del Proyecto
 
@@ -68,25 +105,42 @@ align-press-v2/
 
 ## 🎮 Uso
 
-### CLI de Testing
+### CLI Tools Completos
 
 ```bash
-# Ayuda completa
-python3 -m alignpress.cli.test_detector --help
+# Ayuda del CLI principal
+python3 -m alignpress.cli.main --help
 
 # Test con imagen estática
-python3 -m alignpress.cli.test_detector \
+python3 -m alignpress.cli.main test \
   --config config/example_detector.yaml \
   --image datasets/test_001.jpg \
   --save-debug output/debug_001.jpg \
   --verbose
 
 # Test con cámara en vivo
-python3 -m alignpress.cli.test_detector \
+python3 -m alignpress.cli.main test \
   --config config/example_detector.yaml \
   --camera 0 \
   --show \
   --fps 30
+
+# Calibración de cámara
+python3 -m alignpress.cli.main calibrate \
+  --camera 0 \
+  --pattern-size 9 6 \
+  --square-size-mm 25.0 \
+  --output calibration/camera_0.json
+
+# Validar configuraciones
+python3 -m alignpress.cli.main validate \
+  config/ --recursive
+
+# Benchmark de rendimiento
+python3 -m alignpress.cli.main benchmark \
+  --config config/example_detector.yaml \
+  --dataset datasets/ \
+  --samples 50
 ```
 
 ### Ejecutar Tests
@@ -155,9 +209,11 @@ pytest --cov=alignpress --cov-report=html
 
 ## 🚀 Próximos Pasos
 
-1. **Completar Fase 1**: Implementar CLI de calibración y validación de profiles
-2. **Iniciar Fase 2**: Core business logic (profiles, compositions, job cards)
-3. **Preparar Fase 3**: UI operador MVP con PySide6
+1. **✅ Fase 1 Completada**: CLI tools y infrastructure 100% funcional
+2. **🎯 Iniciar Fase 2**: Core business logic (profiles, compositions, job cards)
+3. **🎮 Preparar Fase 3**: UI operador MVP con PySide6
+4. **🔧 Fase 4**: Interfaz técnica avanzada
+5. **🚀 Fase 5**: Deployment en Raspberry Pi
 
 ## 🐛 Troubleshooting
 

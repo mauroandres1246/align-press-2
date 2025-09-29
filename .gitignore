@@ -1,0 +1,445 @@
+# ============================================================================
+# Align-Press v2 - .gitignore
+# ============================================================================
+
+# ============================================================================
+# Python
+# ============================================================================
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+#  Usually these files are written by a python script from a template
+#  before PyInstaller builds the exe, so as to inject date/other infos into it.
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Flask stuff:
+instance/
+.webassets-cache
+
+# Scrapy stuff:
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+target/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# pipenv
+#   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
+#   However, in case of collaboration, if having platform-specific dependencies or dependencies
+#   having no cross-platform support, pipenv may install dependencies that don't work, or not
+#   install all needed dependencies.
+#Pipfile.lock
+
+# PEP 582; used by e.g. github.com/David-OConnor/pyflow
+__pypackages__/
+
+# Celery stuff
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# ============================================================================
+# IDEs and Editors
+# ============================================================================
+# VSCode
+.vscode/
+*.code-workspace
+
+# PyCharm
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# ============================================================================
+# Operating System
+# ============================================================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.tmp
+*.temp
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+
+# ============================================================================
+# Align-Press Specific Files
+# ============================================================================
+
+# ============================================================================
+# Datasets and Test Data (NEVER commit user data)
+# ============================================================================
+# All datasets - users should provide their own
+datasets/
+data/
+test_data/
+training_data/
+
+# Calibration data (contains user-specific measurements)
+calibration/
+*.calibration
+calibration_*/
+
+# User templates and logos (proprietary content)
+templates/
+logos/
+patterns/
+
+# Test images (may contain proprietary content)
+test_images/
+sample_images/
+real_images/
+
+# ============================================================================
+# Results and Outputs (Generated files)
+# ============================================================================
+# All results directories
+results/
+output/
+outputs/
+reports/
+evaluation/
+benchmarks/
+
+# Specific result files
+*.json
+*.csv
+*.html
+*.xml
+!**/schema*.json        # Keep schema files
+!**/config*.json        # Keep config templates
+!pyproject.toml         # Keep project config
+!package.json           # Keep package config
+
+# Debug and temporary images
+debug/
+temp/
+tmp/
+cache/
+*_debug.jpg
+*_debug.png
+*_temp.*
+*_tmp.*
+
+# Processing artifacts
+processed/
+enhanced/
+annotated/
+
+# ============================================================================
+# Logs and Monitoring
+# ============================================================================
+# Log files
+*.log
+logs/
+log/
+*.log.*
+*.out
+
+# Performance monitoring
+profiling/
+*.prof
+*.profile
+
+# ============================================================================
+# Configuration Files (Sensitive)
+# ============================================================================
+# User-specific configurations
+config/local/
+config/user/
+config/production/
+config/secrets/
+
+# Hardware-specific configs (user's hardware setup)
+config/*_local.yaml
+config/*_production.yaml
+config/*_user.yaml
+config/hardware_*.yaml
+config/camera_*.yaml
+
+# API keys and credentials
+.env
+.env.local
+.env.production
+secrets.yaml
+credentials.json
+api_keys.txt
+
+# ============================================================================
+# Dependencies and Build Artifacts
+# ============================================================================
+# Node modules (if any)
+node_modules/
+
+# Build outputs
+build/
+dist/
+*.whl
+*.tar.gz
+
+# ============================================================================
+# Temporary and System Files
+# ============================================================================
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old
+*.orig
+*~
+
+# System files
+.sass-cache/
+.grunt/
+bower_components/
+
+# ============================================================================
+# AI/ML Specific
+# ============================================================================
+# Model files (if any)
+*.model
+*.pkl
+*.pickle
+*.joblib
+*.h5
+*.onnx
+*.pb
+
+# Training artifacts
+checkpoints/
+weights/
+models/
+
+# ============================================================================
+# Documentation Build
+# ============================================================================
+# Generated documentation
+docs/_build/
+docs/build/
+site/
+
+# ============================================================================
+# Testing
+# ============================================================================
+# Test artifacts
+.coverage*
+htmlcov/
+.pytest_cache/
+test-results/
+coverage-reports/
+
+# ============================================================================
+# CI/CD
+# ============================================================================
+# GitHub Actions artifacts
+.github/workflows/artifacts/
+
+# ============================================================================
+# IMPORTANT: What TO INCLUDE in Git
+# ============================================================================
+# Force include important files even if they match patterns above
+!.gitignore
+!README.md
+!SETUP.md
+!requirements.txt
+!pyproject.toml
+!src/
+!alignpress/
+!tests/
+!tools/
+!docs/
+!config/templates/        # Config templates are OK
+!config/examples/          # Example configs are OK
+!config/defaults/          # Default configs are OK
+!examples/                 # Example files are OK
+
+# Include essential config templates
+!config/*_template.yaml
+!config/*_example.yaml
+!config/*_default.yaml
+
+# Include documentation assets
+!docs/**/*.md
+!docs/**/*.rst
+!docs/**/*.png
+!docs/**/*.jpg
+!docs/**/*.svg
+
+# Include test fixtures (small, generic test data only)
+!tests/fixtures/
+!tests/data/
+!tests/samples/
+
+# ============================================================================
+# Example entries for reference (commented out)
+# ============================================================================
+# Uncomment these if you want to be extra cautious:
+# *.jpg
+# *.jpeg
+# *.png
+# *.bmp
+# *.tiff
+# *.pdf
+# *.mp4
+# *.avi
+# *.mov
+
+# ============================================================================
+# Project-specific exclusions
+# ============================================================================
+# User workspace
+workspace/
+my_tests/
+personal/
+
+# Experiments
+experiments/
+sandbox/
+scratch/

@@ -1,0 +1,39 @@
+version: 1
+
+# Configuración para plancha real de 50cm x 60cm
+plane:
+  width_mm: 500.0    # 50 cm
+  height_mm: 600.0   # 60 cm
+  mm_per_px: 0.4     # Estimado inicial, se actualizará con calibración real
+
+# Logo configuration - ajustar según tu logo específico
+logos:
+  - name: "main_logo"
+    template_path: "datasets/real_templates/main_logo.png"
+    position_mm: [250.0, 300.0]  # Centro de la plancha (50cm/2, 60cm/2)
+    roi:
+      width_mm: 80.0    # ROI más grande para logo principal
+      height_mm: 60.0
+      margin_factor: 1.5  # Factor más generoso para testing inicial
+    angle_deg: 0.0
+
+# Thresholds ajustados para testing real
+thresholds:
+  position_tolerance_mm: 5.0    # Más tolerante para testing inicial
+  angle_tolerance_deg: 8.0      # Más tolerante para rotaciones
+  min_inliers: 12               # Menos estricto para templates reales
+  max_reproj_error: 4.0         # Más tolerante para condiciones reales
+
+# Features optimizados para logos reales
+features:
+  feature_type: "ORB"
+  nfeatures: 2000               # Más features para mejor detección
+  scale_factor: 1.2
+  nlevels: 8
+
+# Fallback más robusto para condiciones reales
+fallback:
+  enabled: true
+  scales: [0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3]  # Rango más amplio
+  angles: [-15, -10, -5, 0, 5, 10, 15]          # Más variaciones de ángulo
+  match_threshold: 0.65         # Más permisivo para templates reales

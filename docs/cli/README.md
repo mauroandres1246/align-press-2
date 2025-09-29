@@ -2,14 +2,52 @@
 
 Documentación completa de las herramientas de línea de comandos de Align-Press v2.
 
+## 🎯 CLI Principal Unificado
+
+**Align-Press v2** cuenta con un CLI principal que integra todas las herramientas:
+
+```bash
+# CLI principal con todos los subcomandos
+python3 -m alignpress.cli.main --help
+
+# O usar los comandos individuales directamente
+python3 -m alignpress.cli.test_detector --help
+```
+
 ## 🎯 Resumen de Herramientas
 
 | Herramienta | Propósito | Estado |
 |-------------|-----------|--------|
+| `main` | 🎯 CLI principal unificado | ✅ Completado |
 | `test_detector` | Testing del detector con imágenes/cámara | ✅ Completado |
 | `calibrate` | Calibración interactiva de cámara | ✅ Completado |
 | `validate_profile` | Validación de archivos de configuración | ✅ Completado |
 | `benchmark` | Análisis de rendimiento del detector | ✅ Completado |
+
+---
+
+## 🎮 CLI Principal (main)
+
+CLI unificado que integra todas las herramientas bajo un solo comando.
+
+### Uso Básico
+
+```bash
+# Ayuda principal
+python3 -m alignpress.cli.main --help
+
+# Test con imagen
+python3 -m alignpress.cli.main test --config config.yaml --image test.jpg
+
+# Calibración de cámara
+python3 -m alignpress.cli.main calibrate --camera 0 --pattern-size 9 6 --square-size-mm 25 --output cal.json
+
+# Validar configuraciones
+python3 -m alignpress.cli.main validate config/ --recursive
+
+# Benchmark
+python3 -m alignpress.cli.main benchmark --config config.yaml --dataset images/
+```
 
 ---
 

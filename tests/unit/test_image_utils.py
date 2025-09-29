@@ -9,7 +9,9 @@ import cv2
 from alignpress.utils.image_utils import (
     mm_to_px, px_to_mm, extract_roi, warp_perspective,
     resize_image, convert_color_safe, enhance_contrast,
-    calculate_image_sharpness
+    calculate_image_sharpness, load_image_with_alpha,
+    save_image_with_alpha, remove_background_auto,
+    enhance_logo_contrast, has_transparency, get_image_info
 )
 
 
@@ -278,3 +280,187 @@ class TestCalculateImageSharpness:
         """Test error handling for invalid input."""
         with pytest.raises(ValueError):
             calculate_image_sharpness(np.array([]))
+
+
+class TestTransparencyUtilities:
+    """Test transparency handling utilities."""
+
+    def test_has_transparency_png_with_alpha(self, tmp_path):
+        """Test detecting PNG with alpha channel."""
+        # Create RGBA image
+        img_rgba = np.random.randint(0, 255, (50, 50, 4), dtype=np.uint8)
+        test_path = tmp_path / "test_alpha.png"
+        cv2.imwrite(str(test_path), img_rgba)
+
+        assert has_transparency(str(test_path)) is True
+
+    def test_has_transparency_png_without_alpha(self, tmp_path):
+        """Test detecting PNG without alpha channel."""
+        # Create RGB image
+        img_rgb = np.random.randint(0, 255, (50, 50, 3), dtype=np.uint8)
+        test_path = tmp_path / "test_no_alpha.png"
+        cv2.imwrite(str(test_path), img_rgb)
+
+        assert has_transparency(str(test_path)) is False
+
+    def test_get_image_info_with_alpha(self, tmp_path):
+        """Test getting image info for image with alpha."""
+        # Create RGBA image
+        img_rgba = np.random.randint(0, 255, (100, 150, 4), dtype=np.uint8)
+        test_path = tmp_path / "test_alpha.png"
+        cv2.imwrite(str(test_path), img_rgba)
+
+        info = get_image_info(str(test_path))
+
+        assert info["shape"] == (100, 150, 4)
+        assert info["has_alpha"] is True
+        assert info["is_color"] is True
+
+    def test_get_image_info_without_alpha(self, tmp_path):
+        """Test getting image info for image without alpha."""
+        # Create RGB image
+        img_rgb = np.random.randint(0, 255, (80, 120, 3), dtype=np.uint8)
+        test_path = tmp_path / "test_no_alpha.png"
+        cv2.imwrite(str(test_path), img_rgb)
+
+        info = get_image_info(str(test_path))
+
+        assert info["shape"] == (80, 120, 3)
+        assert info["has_alpha"] is False
+        assert info["is_color"] is True
+
+
+class TestLoadImageWithAlpha:
+    """Test loading images with alpha channel support."""
+
+    def test_load_image_with_alpha_rgba(self, tmp_path):
+        """Test loading RGBA image."""
+        # Create RGBA image
+        img_rgba = np.random.randint(0, 255, (50, 50, 4), dtype=np.uint8)
+        test_path = tmp_path / "test_rgba.png"
+        cv2.imwrite(str(test_path), img_rgba)
+
+        image, alpha = load_image_with_alpha(str(test_path))
+
+        assert image is not None
+        assert alpha is not None
+        assert image.shape == (50, 50, 3)  # RGB
+        assert alpha.shape == (50, 50)     # Single channel
+
+    def test_load_image_with_alpha_rgb(self, tmp_path):
+        """Test loading RGB image (no alpha)."""
+        # Create RGB image
+        img_rgb = np.random.randint(0, 255, (50, 50, 3), dtype=np.uint8)
+        test_path = tmp_path / "test_rgb.png"
+        cv2.imwrite(str(test_path), img_rgb)
+
+        image, alpha = load_image_with_alpha(str(test_path))
+
+        assert image is not None
+        assert alpha is None
+        assert image.shape == (50, 50, 3)
+
+    def test_load_image_with_alpha_nonexistent(self):
+        """Test loading nonexistent image."""
+        with pytest.raises(ValueError, match="Could not load image"):
+            load_image_with_alpha("nonexistent.png")
+
+
+class TestSaveImageWithAlpha:
+    """Test saving images with alpha channel support."""
+
+    def test_save_image_with_alpha_rgba(self, tmp_path):
+        """Test saving image with alpha channel."""
+        # Create test image and alpha
+        image = np.random.randint(0, 255, (50, 50, 3), dtype=np.uint8)
+        alpha = np.random.randint(0, 255, (50, 50), dtype=np.uint8)
+        test_path = tmp_path / "output_rgba.png"
+
+        success = save_image_with_alpha(image, str(test_path), alpha)
+
+        assert success is True
+        assert test_path.exists()
+
+        # Verify it was saved with alpha
+        assert has_transparency(str(test_path)) is True
+
+    def test_save_image_with_alpha_rgb(self, tmp_path):
+        """Test saving image without alpha channel."""
+        # Create test image without alpha
+        image = np.random.randint(0, 255, (50, 50, 3), dtype=np.uint8)
+        test_path = tmp_path / "output_rgb.png"
+
+        success = save_image_with_alpha(image, str(test_path), None)
+
+        assert success is True
+        assert test_path.exists()
+
+        # Verify it was saved without alpha
+        assert has_transparency(str(test_path)) is False
+
+
+class TestRemoveBackgroundAuto:
+    """Test automatic background removal."""
+
+    def test_remove_background_contour_method(self):
+        """Test background removal using contour method."""
+        # Create simple logo on background
+        image = np.ones((100, 100, 3), dtype=np.uint8) * 255  # White background
+        cv2.circle(image, (50, 50), 20, (0, 0, 255), -1)      # Red circle logo
+
+        processed_image, mask = remove_background_auto(image, method="contour")
+
+        assert processed_image is not None
+        assert mask is not None
+        assert processed_image.shape == (100, 100, 4)  # Should have alpha channel
+        assert mask.shape == (100, 100)
+
+    def test_remove_background_threshold_method(self):
+        """Test background removal using threshold method."""
+        # Create simple logo on background
+        image = np.ones((100, 100, 3), dtype=np.uint8) * 255  # White background
+        cv2.rectangle(image, (30, 30), (70, 70), (0, 255, 0), -1)  # Green rectangle logo
+
+        processed_image, mask = remove_background_auto(image, method="threshold")
+
+        assert processed_image is not None
+        assert mask is not None
+
+    def test_remove_background_invalid_method(self):
+        """Test error handling for invalid method."""
+        image = np.random.randint(0, 255, (50, 50, 3), dtype=np.uint8)
+
+        with pytest.raises(ValueError, match="Unknown background removal method"):
+            remove_background_auto(image, method="invalid_method")
+
+
+class TestEnhanceLogoContrast:
+    """Test logo contrast enhancement with alpha support."""
+
+    def test_enhance_logo_contrast_with_alpha(self):
+        """Test contrast enhancement with alpha mask."""
+        # Create grayscale logo
+        logo = np.random.randint(100, 150, (50, 50), dtype=np.uint8)  # Low contrast
+        alpha = np.ones((50, 50), dtype=np.uint8) * 255  # Full opacity
+
+        enhanced = enhance_logo_contrast(logo, alpha)
+
+        assert enhanced.shape == logo.shape
+        assert enhanced.dtype == logo.dtype
+
+    def test_enhance_logo_contrast_without_alpha(self):
+        """Test contrast enhancement without alpha mask."""
+        # Create grayscale logo
+        logo = np.random.randint(100, 150, (50, 50), dtype=np.uint8)  # Low contrast
+
+        enhanced = enhance_logo_contrast(logo, None)
+
+        assert enhanced.shape == logo.shape
+        assert enhanced.dtype == logo.dtype
+
+    def test_enhance_logo_contrast_invalid_input(self):
+        """Test error handling for invalid input."""
+        # Invalid image dimensions (neither 2D nor 3D)
+        with pytest.raises(ValueError, match="Image must be grayscale or color"):
+            invalid_img = np.zeros((50, 50, 3, 3), dtype=np.uint8)  # 4D image
+            enhance_logo_contrast(invalid_img)

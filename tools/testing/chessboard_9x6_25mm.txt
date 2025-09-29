@@ -1,0 +1,24 @@
+# Chessboard Pattern for Calibration
+
+## Pattern Specifications:
+- **Size**: 9x6 internal corners (10x7 squares total)
+- **Square size**: 25mm x 25mm
+- **Total size**: 250mm x 175mm
+- **Print scale**: 100% (no scaling)
+
+## Printing Instructions:
+1. Use a high-quality printer
+2. Print on white paper (minimum 80gsm)
+3. Ensure 100% scale (no fit-to-page)
+4. Mount on rigid surface (cardboard/foam board)
+5. Ensure flat surface without warping
+
+## Online Generator:
+Visit: https://calib.io/pages/camera-calibration-pattern-generator
+- Select: Chessboard
+- Dimensions: 10x7 squares
+- Square size: 25mm
+- Format: PDF
+
+## Verification:
+Measure printed squares with ruler to confirm 25mm size.

@@ -95,6 +95,8 @@ class LogoSpecSchema(BaseModel):
     position_mm: Tuple[float, float] = Field(..., description="Expected position (x, y) in mm")
     roi: ROIConfigSchema = Field(..., description="Region of interest configuration")
     angle_deg: float = Field(default=0.0, description="Expected angle in degrees")
+    has_transparency: Optional[bool] = Field(default=None, description="Whether template has transparency channel")
+    transparency_method: Optional[str] = Field(default=None, description="Method used for background removal")
 
     model_config = {
         "json_schema_extra": {
@@ -107,10 +109,22 @@ class LogoSpecSchema(BaseModel):
                     "height_mm": 40.0,
                     "margin_factor": 1.2
                 },
-                "angle_deg": 0.0
+                "angle_deg": 0.0,
+                "has_transparency": True,
+                "transparency_method": "contour"
             }
         }
     }
+
+    @field_validator('transparency_method')
+    @classmethod
+    def validate_transparency_method(cls, v: Optional[str]) -> Optional[str]:
+        """Validate transparency method."""
+        if v is not None:
+            valid_methods = {'contour', 'threshold', 'grabcut'}
+            if v not in valid_methods:
+                raise ValueError(f"transparency_method must be one of {valid_methods}")
+        return v
 
     @field_validator('template_path')
     @classmethod
