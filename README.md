@@ -44,10 +44,11 @@ python3 tools/create_test_templates.py
 python3 -m alignpress.cli.main --help
 
 # 5. Probar el detector con imagen
-python3 -m alignpress.cli.main test \
-  --config config/example_detector.yaml \
-  --image datasets/test_001.jpg \
-  --verbose
+python -m alignpress.cli test \
+  --config config/platen_50x60_detector.yaml \
+  --image test_image.jpg \
+  --save-debug debug_output.jpg \
+  --save-json results.json
 
 # 6. Validar configuraciones
 python3 -m alignpress.cli.main validate config/ --recursive

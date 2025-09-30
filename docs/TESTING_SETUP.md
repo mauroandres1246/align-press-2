@@ -59,11 +59,10 @@ datasets/calibration/platen_50x60/pattern_image.jpg
 ### Ejemplo de comando para calibrar:
 ```bash
 python tools/testing/calibrate_from_image.py \
-  --input datasets/calibration/platen_50x60/pattern_image.jpg \
+  --image calibration/platen_50x60/pattern_image.jpg \
   --output datasets/calibration/platen_50x60/ \
-  --platen-size 500 600 \
   --pattern-size 9 6 \
-  --square-size 25
+  --square-size-mm 25
 ```
 
 ## 🏷️ Paso 2: Preparar Template del Logo
@@ -271,7 +270,7 @@ results/
 ### ❌ Error: "Calibration not found"
 **Solución:** Ejecuta primero la calibración:
 ```bash
-python tools/testing/calibrate_from_image.py --input datasets/calibration/platen_50x60/pattern_image.jpg --output datasets/calibration/platen_50x60/
+python tools/testing/calibrate_from_image.py --image calibration/platen_50x60/pattern_image.jpg --output datasets/calibration/platen_50x60/ --pattern-size 9 6 --square-size-mm 25
 ```
 
 ### ❌ Detección muy lenta (>500ms)
@@ -335,9 +334,9 @@ python tools/testing/setup_testing_environment.py --output datasets/ --platen-ty
 
 # 2. Calibrar (coloca tu imagen de patrón primero)
 python tools/testing/calibrate_from_image.py \
-  --input datasets/calibration/platen_50x60/pattern_image.jpg \
+  --image calibration/platen_50x60/pattern_image.jpg \
   --output datasets/calibration/platen_50x60/ \
-  --platen-size 500 600 --pattern-size 9 6 --square-size 25
+  --pattern-size 9 6 --square-size-mm 25
 
 # 3. Extraer template (coloca tu imagen fuente primero)
 python tools/testing/extract_template.py \

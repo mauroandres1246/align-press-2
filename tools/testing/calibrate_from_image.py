@@ -186,7 +186,7 @@ class StaticImageCalibrator:
 
         # Project object points back to image
         object_points_2d = objp[:, :2].reshape(-1, 1, 2).astype(np.float32)
-        projected_points, _ = cv2.perspectiveTransform(
+        projected_points = cv2.perspectiveTransform(
             object_points_2d,
             np.linalg.inv(self.homography)
         )

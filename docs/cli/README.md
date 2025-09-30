@@ -62,11 +62,11 @@ Herramienta principal para probar el detector de logos con imágenes estáticas 
 python -m alignpress.cli.test_detector --help
 
 # Test con imagen estática
-python -m alignpress.cli.test_detector \
-  --config config/example_detector.yaml \
-  --image datasets/test_001.jpg \
-  --save-debug output/debug_001.jpg \
-  --verbose
+python -m alignpress.cli test \
+  --config config/platen_50x60_detector.yaml \
+  --image test_image.jpg \
+  --save-debug debug_output.jpg \
+  --save-json results.json
 
 # Test con cámara en vivo
 python -m alignpress.cli.test_detector \

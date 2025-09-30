@@ -156,12 +156,9 @@ class TemplateExtractor:
         console.print(f"   Original sharpness: {laplacian_var:.2f}")
         console.print(f"   Enhanced sharpness: {enhanced_sharpness:.2f}")
 
-        if Confirm.ask("Keep enhancements?", default=True):
-            self.template = enhanced
-            console.print("✅ Enhancements applied")
-        else:
-            self.template = original_template
-            console.print("📸 Keeping original template")
+        # Auto-apply enhancements
+        self.template = enhanced
+        console.print("✅ Enhancements applied automatically")
 
         return True
 

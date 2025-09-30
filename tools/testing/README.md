@@ -55,11 +55,10 @@ python tools/testing/setup_testing_environment.py
 ### Calibración desde Imagen
 ```bash
 python tools/testing/calibrate_from_image.py \
-  --image datasets/calibration/platen_with_chessboard.jpg \
+  --image calibration/platen_50x60/pattern_image.jpg \
   --pattern-size 9 6 \
-  --square-size-mm 25.0 \
-  --output calibration/platen_50x60/calibration.json \
-  --debug-image calibration/platen_50x60/calibration_debug.jpg
+  --square-size-mm 25 \
+  --output datasets/calibration/platen_50x60/
 ```
 
 ### Extracción de Template

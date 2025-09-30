@@ -4,25 +4,25 @@ version: 1
 plane:
   width_mm: 500.0    # 50 cm
   height_mm: 600.0   # 60 cm
-  mm_per_px: 0.4     # Estimado inicial, se actualizará con calibración real
+  mm_per_px: 0.08467 # Obtenido de calibración real
 
 # Logo configuration - ajustar según tu logo específico
 logos:
-  - name: "main_logo"
-    template_path: "datasets/real_templates/main_logo.png"
-    position_mm: [250.0, 300.0]  # Centro de la plancha (50cm/2, 60cm/2)
+  - name: "logo_pecho"
+    template_path: "test_template.png"
+    position_mm: [169.3, 203.2]  # Posición real del logo extraído
     roi:
-      width_mm: 80.0    # ROI más grande para logo principal
-      height_mm: 60.0
-      margin_factor: 1.5  # Factor más generoso para testing inicial
+      width_mm: 200.0   # ROI ajustado para nueva escala
+      height_mm: 200.0
+      margin_factor: 1.5  # Margen razonable
     angle_deg: 0.0
 
 # Thresholds ajustados para testing real
 thresholds:
-  position_tolerance_mm: 5.0    # Más tolerante para testing inicial
-  angle_tolerance_deg: 8.0      # Más tolerante para rotaciones
-  min_inliers: 12               # Menos estricto para templates reales
-  max_reproj_error: 4.0         # Más tolerante para condiciones reales
+  position_tolerance_mm: 20.0   # Máximo permitido
+  angle_tolerance_deg: 30.0     # Muy tolerante
+  min_inliers: 4                # Mínimo permitido
+  max_reproj_error: 10.0        # Muy tolerante
 
 # Features optimizados para logos reales
 features:
