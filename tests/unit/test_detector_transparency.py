@@ -10,7 +10,7 @@ from unittest.mock import Mock, patch
 
 from alignpress.core.detector import PlanarLogoDetector
 from alignpress.core.schemas import (
-    DetectorConfigSchema, PlaneConfigSchema, FeatureConfigSchema,
+    DetectorConfigSchema, PlaneConfigSchema, FeatureParamsSchema,
     ROIConfigSchema, LogoSpecSchema
 )
 
@@ -32,9 +32,9 @@ class TestDetectorTransparencySupport:
                 height_mm=200.0,
                 mm_per_px=0.5
             ),
-            features=FeatureConfigSchema(
+            features=FeatureParamsSchema(
                 feature_type="ORB",
-                max_features=1000
+                nfeatures=1000
             ),
             logos=[
                 LogoSpecSchema(
@@ -78,9 +78,9 @@ class TestDetectorTransparencySupport:
                 height_mm=200.0,
                 mm_per_px=0.5
             ),
-            features=FeatureConfigSchema(
+            features=FeatureParamsSchema(
                 feature_type="ORB",
-                max_features=1000
+                nfeatures=1000
             ),
             logos=[
                 LogoSpecSchema(
@@ -128,9 +128,9 @@ class TestDetectorTransparencySupport:
                 height_mm=200.0,
                 mm_per_px=0.5
             ),
-            features=FeatureConfigSchema(
+            features=FeatureParamsSchema(
                 feature_type="ORB",
-                max_features=1000
+                nfeatures=1000
             ),
             logos=[
                 LogoSpecSchema(
@@ -230,9 +230,9 @@ class TestDetectorWithRealAlphaTemplates:
                 height_mm=200.0,
                 mm_per_px=0.5
             ),
-            features=FeatureConfigSchema(
+            features=FeatureParamsSchema(
                 feature_type="ORB",
-                max_features=1000
+                nfeatures=1000
             ),
             logos=[
                 LogoSpecSchema(
@@ -272,9 +272,9 @@ class TestDetectorWithRealAlphaTemplates:
                 height_mm=200.0,
                 mm_per_px=0.5
             ),
-            features=FeatureConfigSchema(
+            features=FeatureParamsSchema(
                 feature_type="ORB",
-                max_features=1000
+                nfeatures=1000
             ),
             logos=[
                 LogoSpecSchema(
