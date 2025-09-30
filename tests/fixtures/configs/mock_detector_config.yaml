@@ -1,0 +1,51 @@
+version: 1
+plane:
+  width_mm: 300.0
+  height_mm: 200.0
+  mm_per_px: 0.5
+  homography: null
+
+logos:
+  - name: "logo_a"
+    template: "tests/fixtures/templates/mock_template_a.png"
+    expected_pos_mm: [150.0, 100.0]
+    expected_angle_deg: 0.0
+    roi:
+      width_mm: 80.0
+      height_mm: 60.0
+      margin_factor: 1.5
+
+  - name: "logo_b"
+    template: "tests/fixtures/templates/mock_template_b.png"
+    expected_pos_mm: [75.0, 50.0]
+    expected_angle_deg: 0.0
+    roi:
+      width_mm: 60.0
+      height_mm: 40.0
+      margin_factor: 1.5
+
+thresholds:
+  max_position_error_mm: 3.0
+  max_angle_error_deg: 5.0
+  min_inliers: 15
+  max_reproj_error_px: 3.0
+
+feature_params:
+  type: "ORB"
+  nfeatures: 1500
+  scaleFactor: 1.2
+  nlevels: 8
+  edgeThreshold: 31
+  patchSize: 31
+
+matching_params:
+  algorithm: "BF"
+  normType: "HAMMING"
+  crossCheck: true
+  ratio_test_threshold: 0.75
+
+fallback:
+  enabled: false
+  scales: [0.8, 0.9, 1.0, 1.1, 1.2]
+  angles_deg: [-10, -5, 0, 5, 10]
+  match_threshold: 0.7
