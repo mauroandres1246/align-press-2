@@ -2,298 +2,319 @@
 
 import pytest
 import json
-import tempfile
 from pathlib import Path
 from unittest.mock import Mock, patch, MagicMock
 import numpy as np
+import cv2
 
 from alignpress.cli.benchmark import PerformanceBenchmark
 
 
-@pytest.mark.skip(reason="Tests use mock implementation that doesn't match actual PerformanceBenchmark class - needs rewrite")
 class TestPerformanceBenchmark:
-    """Test BenchmarkRunner class."""
+    """Test PerformanceBenchmark class."""
 
     @pytest.fixture
-    def sample_config(self, tmp_path):
-        """Create sample detector config."""
-        config = {
+    def benchmark(self, tmp_path):
+        """Create benchmark instance."""
+        config_path = tmp_path / "config.yaml"
+        return PerformanceBenchmark(config_path=config_path)
+
+    @pytest.fixture
+    def valid_config_yaml(self, tmp_path):
+        """Create valid config with at least one logo."""
+        import yaml
+
+        # Create a minimal template
+        template_path = tmp_path / "template.png"
+        cv2.imwrite(str(template_path), np.zeros((50, 50, 3), dtype=np.uint8))
+
+        config_path = tmp_path / "config.yaml"
+        config_data = {
             "plane": {
                 "width_mm": 300.0,
                 "height_mm": 200.0,
                 "mm_per_px": 0.5
             },
-            "logos": [
-                {
-                    "name": "test_logo",
-                    "template_path": "templates/test.png",
-                    "position_mm": [150.0, 100.0],
-                    "angle_deg": 0.0,
-                    "roi": {
-                        "width_mm": 50.0,
-                        "height_mm": 50.0,
-                        "margin_factor": 1.5
-                    }
-                }
-            ],
+            "logos": [{
+                "name": "test_logo",
+                "template_path": str(template_path),
+                "position_mm": [150.0, 100.0],
+                "roi": {"width_mm": 50.0, "height_mm": 40.0}
+            }],
             "thresholds": {
-                "max_deviation": 5.0,
-                "max_angle_error": 10.0,
-                "min_inliers": 15,
-                "max_reproj_error": 3.0
+                "max_deviation_mm": 5.0,
+                "max_angle_error_deg": 10.0,
+                "min_inliers": 10,
+                "max_reproj_error_px": 3.0
             },
             "features": {
                 "feature_type": "ORB",
-                "nfeatures": 1500
+                "nfeatures": 500
+            }
+        }
+        config_path.write_text(yaml.dump(config_data))
+        return config_path
+
+    def test_benchmark_initialization(self, benchmark, tmp_path):
+        """Test benchmark initializes correctly."""
+        assert benchmark.config_path == tmp_path / "config.yaml"
+        assert benchmark.detector is None
+        assert benchmark.results == []
+        assert isinstance(benchmark.system_info, dict)
+
+    def test_get_system_info(self, benchmark):
+        """Test system info collection."""
+        info = benchmark.system_info
+
+        assert "cpu_count" in info
+        assert "memory_total_gb" in info
+        assert "python_version" in info
+        assert "opencv_version" in info
+        assert info["cpu_count"] > 0
+        assert info["memory_total_gb"] > 0
+
+    def test_load_detector_file_not_found(self, benchmark):
+        """Test loading detector with missing file."""
+        result = benchmark.load_detector()
+
+        assert result is False
+        assert benchmark.detector is None
+
+    def test_load_detector_success_yaml(self, benchmark, valid_config_yaml):
+        """Test successful detector loading from YAML."""
+        benchmark.config_path = valid_config_yaml
+        result = benchmark.load_detector()
+
+        assert result is True
+        assert benchmark.detector is not None
+
+    def test_load_dataset_directory_not_found(self, benchmark, tmp_path):
+        """Test loading dataset from non-existent directory."""
+        dataset_path = tmp_path / "nonexistent"
+
+        image_files = benchmark.load_dataset(dataset_path)
+
+        assert len(image_files) == 0
+
+    def test_load_dataset_empty_directory(self, benchmark, tmp_path):
+        """Test loading dataset from empty directory."""
+        dataset_path = tmp_path / "dataset"
+        dataset_path.mkdir()
+
+        image_files = benchmark.load_dataset(dataset_path)
+
+        assert len(image_files) == 0
+
+    def test_load_dataset_with_images(self, benchmark, tmp_path):
+        """Test loading dataset with image files."""
+        dataset_path = tmp_path / "dataset"
+        dataset_path.mkdir()
+
+        # Create test images
+        for i in range(3):
+            img_path = dataset_path / f"test_{i}.jpg"
+            cv2.imwrite(str(img_path), np.zeros((100, 100, 3), dtype=np.uint8))
+
+        image_files = benchmark.load_dataset(dataset_path)
+
+        assert len(image_files) == 3
+        assert all(f.suffix == '.jpg' for f in image_files)
+
+    def test_load_dataset_single_file(self, benchmark, tmp_path):
+        """Test loading dataset with single file."""
+        img_path = tmp_path / "test.jpg"
+        cv2.imwrite(str(img_path), np.zeros((100, 100, 3), dtype=np.uint8))
+
+        image_files = benchmark.load_dataset(img_path)
+
+        assert len(image_files) == 1
+        assert image_files[0] == img_path
+
+    def test_load_dataset_mixed_extensions(self, benchmark, tmp_path):
+        """Test loading dataset with mixed extensions."""
+        dataset_path = tmp_path / "dataset"
+        dataset_path.mkdir()
+
+        # Create images with different extensions
+        for ext in ['.jpg', '.png', '.bmp']:
+            img_path = dataset_path / f"test{ext}"
+            cv2.imwrite(str(img_path), np.zeros((100, 100, 3), dtype=np.uint8))
+
+        image_files = benchmark.load_dataset(dataset_path)
+
+        assert len(image_files) == 3
+
+    def test_benchmark_single_image_invalid_path(self, benchmark, tmp_path):
+        """Test benchmarking with invalid image path."""
+        # Mock detector
+        benchmark.detector = MagicMock()
+
+        img_path = tmp_path / "nonexistent.jpg"
+        result = benchmark.benchmark_single_image(img_path)
+
+        assert result["success"] is False
+        assert result["error"] == "Could not load image"
+
+    def test_benchmark_single_image_success(self, benchmark, tmp_path):
+        """Test successful image benchmarking."""
+        # Create test image
+        img_path = tmp_path / "test.jpg"
+        test_image = np.zeros((100, 100, 3), dtype=np.uint8)
+        cv2.imwrite(str(img_path), test_image)
+
+        # Mock detector
+        mock_detector = MagicMock()
+        mock_result = MagicMock()
+        mock_result.dict.return_value = {"logo_name": "test", "found": True}
+        mock_detector.detect_logos.return_value = [mock_result]
+        benchmark.detector = mock_detector
+
+        result = benchmark.benchmark_single_image(img_path)
+
+        assert result["success"] is True
+        assert "timing" in result
+        assert "detection_ms" in result["timing"]
+        assert "memory" in result
+        assert "detection_results" in result
+        assert len(result["detection_results"]) == 1
+
+    def test_benchmark_single_image_timing_metrics(self, benchmark, tmp_path):
+        """Test benchmark captures timing metrics."""
+        img_path = tmp_path / "test.jpg"
+        cv2.imwrite(str(img_path), np.zeros((100, 100, 3), dtype=np.uint8))
+
+        mock_detector = MagicMock()
+        mock_detector.detect_logos.return_value = []
+        benchmark.detector = mock_detector
+
+        result = benchmark.benchmark_single_image(img_path)
+
+        assert result["success"] is True
+        assert "load_ms" in result["timing"]
+        assert "detection_ms" in result["timing"]
+        assert "total_ms" in result["timing"]
+        assert result["timing"]["total_ms"] >= result["timing"]["detection_ms"]
+
+    def test_benchmark_single_image_memory_metrics(self, benchmark, tmp_path):
+        """Test benchmark captures memory metrics."""
+        img_path = tmp_path / "test.jpg"
+        cv2.imwrite(str(img_path), np.zeros((100, 100, 3), dtype=np.uint8))
+
+        mock_detector = MagicMock()
+        mock_detector.detect_logos.return_value = []
+        benchmark.detector = mock_detector
+
+        result = benchmark.benchmark_single_image(img_path)
+
+        assert result["success"] is True
+        assert "before_mb" in result["memory"]
+        assert "after_load_mb" in result["memory"]
+        assert "after_detection_mb" in result["memory"]
+        assert "peak_usage_mb" in result["memory"]
+
+    def test_benchmark_single_image_includes_image_size(self, benchmark, tmp_path):
+        """Test benchmark includes image size info."""
+        img_path = tmp_path / "test.jpg"
+        test_image = np.zeros((480, 640, 3), dtype=np.uint8)
+        cv2.imwrite(str(img_path), test_image)
+
+        mock_detector = MagicMock()
+        mock_detector.detect_logos.return_value = []
+        benchmark.detector = mock_detector
+
+        result = benchmark.benchmark_single_image(img_path)
+
+        assert result["success"] is True
+        assert result["image_size"]["width"] == 640
+        assert result["image_size"]["height"] == 480
+        assert result["image_size"]["channels"] == 3
+
+    def test_save_results_creates_file(self, benchmark, tmp_path):
+        """Test saving benchmark results."""
+        output_path = tmp_path / "results.json"
+        analysis = {
+            "summary": {
+                "total_images": 5,
+                "successful": 5,
+                "failed": 0
             },
-            "fallback": {
-                "enabled": True
+            "timing": {
+                "mean_ms": 100.0,
+                "median_ms": 95.0
             }
         }
 
-        config_path = tmp_path / "config.json"
-        with open(config_path, 'w') as f:
-            json.dump(config, f)
-
-        return config_path
-
-    @pytest.fixture
-    def sample_images(self, tmp_path):
-        """Create sample test images."""
-        dataset_dir = tmp_path / "dataset"
-        dataset_dir.mkdir()
-
-        # Create 3 sample images
-        for i in range(3):
-            img = np.random.randint(0, 255, (480, 640, 3), dtype=np.uint8)
-            img_path = dataset_dir / f"test_{i:03d}.jpg"
-            import cv2
-            cv2.imwrite(str(img_path), img)
-
-        return dataset_dir
-
-    def test_benchmark_runner_initialization(self, sample_config, sample_images):
-        """Test benchmark runner initializes correctly."""
-        runner = PerformanceBenchmark(
-            config_path=sample_config,
-            dataset_path=sample_images
-        )
-
-        assert runner.config_path == sample_config
-        assert runner.dataset_path == sample_images
-        assert runner.detector is None
-
-    @patch('alignpress.cli.benchmark.PlanarLogoDetector')
-    def test_load_detector(self, mock_detector_class, sample_config, sample_images):
-        """Test loading detector from config."""
-        runner = PerformanceBenchmark(
-            config_path=sample_config,
-            dataset_path=sample_images
-        )
-
-        result = runner.load_detector()
+        result = benchmark.save_results(output_path, analysis)
 
         assert result is True
-        mock_detector_class.assert_called_once()
-
-    def test_collect_images_from_directory(self, sample_config, sample_images):
-        """Test collecting images from directory."""
-        runner = PerformanceBenchmark(
-            config_path=sample_config,
-            dataset_path=sample_images
-        )
-
-        images = runner.collect_images()
-
-        assert len(images) == 3
-        assert all(p.suffix == '.jpg' for p in images)
-
-    def test_collect_images_single_file(self, sample_config, sample_images):
-        """Test collecting single image file."""
-        image_path = list(sample_images.glob("*.jpg"))[0]
-
-        runner = PerformanceBenchmark(
-            config_path=sample_config,
-            dataset_path=image_path
-        )
-
-        images = runner.collect_images()
-
-        assert len(images) == 1
-        assert images[0] == image_path
-
-    def test_collect_images_with_limit(self, sample_config, sample_images):
-        """Test collecting limited number of images."""
-        runner = PerformanceBenchmark(
-            config_path=sample_config,
-            dataset_path=sample_images,
-            max_samples=2
-        )
-
-        images = runner.collect_images()
-
-        assert len(images) == 2
-
-    @patch('alignpress.cli.benchmark.PlanarLogoDetector')
-    def test_process_single_image(self, mock_detector_class, sample_config, sample_images):
-        """Test processing single image."""
-        # Setup mock detector
-        mock_detector = MagicMock()
-        mock_result = MagicMock()
-        mock_result.logo_name = "test_logo"
-        mock_result.found = True
-        mock_result.processing_time_ms = 50.0
-        mock_detector.detect_logos.return_value = [mock_result]
-        mock_detector_class.return_value = mock_detector
-
-        runner = PerformanceBenchmark(
-            config_path=sample_config,
-            dataset_path=sample_images
-        )
-        runner.load_detector()
-
-        images = runner.collect_images()
-        result = runner.process_image(images[0])
-
-        assert result is not None
-        assert 'image_path' in result
-        assert 'total_time_ms' in result
-        assert 'logo_results' in result
-
-    @patch('alignpress.cli.benchmark.PlanarLogoDetector')
-    def test_run_benchmark(self, mock_detector_class, sample_config, sample_images):
-        """Test running complete benchmark."""
-        # Setup mock detector
-        mock_detector = MagicMock()
-        mock_result = MagicMock()
-        mock_result.logo_name = "test_logo"
-        mock_result.found = True
-        mock_result.processing_time_ms = 50.0
-        mock_result.confidence = 0.85
-        mock_detector.detect_logos.return_value = [mock_result]
-        mock_detector_class.return_value = mock_detector
-
-        runner = PerformanceBenchmark(
-            config_path=sample_config,
-            dataset_path=sample_images
-        )
-
-        results = runner.run()
-
-        assert results is not None
-        assert 'summary' in results
-        assert 'samples' in results
-        assert results['summary']['total_samples'] == 3
-
-    @patch('alignpress.cli.benchmark.PlanarLogoDetector')
-    def test_calculate_statistics(self, mock_detector_class, sample_config, sample_images):
-        """Test calculating benchmark statistics."""
-        mock_detector = MagicMock()
-        mock_result = MagicMock()
-        mock_result.logo_name = "test_logo"
-        mock_result.found = True
-        mock_result.processing_time_ms = 50.0
-        mock_result.confidence = 0.85
-        mock_detector.detect_logos.return_value = [mock_result]
-        mock_detector_class.return_value = mock_detector
-
-        runner = PerformanceBenchmark(
-            config_path=sample_config,
-            dataset_path=sample_images
-        )
-        results = runner.run()
-
-        # Check statistics
-        summary = results['summary']
-        assert 'avg_time_ms' in summary
-        assert 'min_time_ms' in summary
-        assert 'max_time_ms' in summary
-        assert 'fps' in summary
-        assert summary['avg_time_ms'] > 0
-
-    def test_save_results(self, sample_config, sample_images, tmp_path):
-        """Test saving benchmark results to file."""
-        runner = PerformanceBenchmark(
-            config_path=sample_config,
-            dataset_path=sample_images
-        )
-
-        # Mock results
-        results = {
-            'summary': {
-                'total_samples': 3,
-                'avg_time_ms': 50.0,
-                'fps': 20.0
-            },
-            'samples': []
-        }
-
-        output_path = tmp_path / "benchmark_results.json"
-        runner.save_results(results, output_path)
-
         assert output_path.exists()
 
-        # Verify content
+        # Verify content - results are nested under "analysis"
         with open(output_path) as f:
             data = json.load(f)
-            assert data['summary']['total_samples'] == 3
+            assert "analysis" in data
+            assert data["analysis"]["summary"]["total_images"] == 5
 
 
-@pytest.mark.skip(reason="Tests use mock implementation that doesn't match actual PerformanceBenchmark class - needs rewrite")
-class TestBenchmarkCLI:
-    """Test benchmark CLI command."""
+class TestBenchmarkIntegration:
+    """Integration tests for benchmark workflow."""
 
-    @patch('alignpress.cli.benchmark.PerformanceBenchmark')
-    def test_benchmark_cli_execution(self, mock_runner_class, tmp_path):
-        """Test CLI benchmark execution."""
-        from alignpress.cli.benchmark import main
+    def test_full_benchmark_workflow(self, tmp_path):
+        """Test complete benchmark workflow."""
+        import yaml
 
-        # Setup mocks
-        mock_runner = MagicMock()
-        mock_runner.load_detector.return_value = True
-        mock_runner.run.return_value = {
-            'summary': {'total_samples': 10, 'avg_time_ms': 50.0}
+        # Create template
+        template_path = tmp_path / "template.png"
+        cv2.imwrite(str(template_path), np.zeros((50, 50, 3), dtype=np.uint8))
+
+        # Create config
+        config_path = tmp_path / "config.yaml"
+        config_data = {
+            "plane": {
+                "width_mm": 300.0,
+                "height_mm": 200.0,
+                "mm_per_px": 0.5
+            },
+            "logos": [{
+                "name": "test_logo",
+                "template_path": str(template_path),
+                "position_mm": [150.0, 100.0],
+                "roi": {"width_mm": 50.0, "height_mm": 40.0}
+            }],
+            "thresholds": {
+                "max_deviation_mm": 5.0,
+                "max_angle_error_deg": 10.0,
+                "min_inliers": 10,
+                "max_reproj_error_px": 3.0
+            },
+            "features": {
+                "feature_type": "ORB",
+                "nfeatures": 500
+            }
         }
-        mock_runner_class.return_value = mock_runner
+        config_path.write_text(yaml.dump(config_data))
 
-        config_path = tmp_path / "config.json"
-        config_path.write_text("{}")
+        # Create dataset
         dataset_path = tmp_path / "dataset"
         dataset_path.mkdir()
-        output_path = tmp_path / "results.json"
+        for i in range(2):
+            img_path = dataset_path / f"img_{i}.jpg"
+            cv2.imwrite(str(img_path), np.zeros((100, 100, 3), dtype=np.uint8))
 
-        with patch('sys.argv', [
-            'benchmark.py',
-            '--config', str(config_path),
-            '--dataset', str(dataset_path),
-            '--output', str(output_path)
-        ]):
-            exit_code = main()
+        # Create benchmark
+        benchmark = PerformanceBenchmark(config_path)
 
-        assert exit_code == 0
-        mock_runner.load_detector.assert_called_once()
-        mock_runner.run.assert_called_once()
+        # Load detector
+        assert benchmark.load_detector() is True
 
-    @patch('alignpress.cli.benchmark.PerformanceBenchmark')
-    def test_benchmark_cli_detector_load_failure(self, mock_runner_class, tmp_path):
-        """Test CLI handles detector loading failure."""
-        from alignpress.cli.benchmark import main
+        # Load dataset
+        images = benchmark.load_dataset(dataset_path)
+        assert len(images) == 2
 
-        # Setup mocks
-        mock_runner = MagicMock()
-        mock_runner.load_detector.return_value = False
-        mock_runner_class.return_value = mock_runner
+        # Benchmark images
+        for img in images:
+            result = benchmark.benchmark_single_image(img)
+            assert result["success"] is True
+            benchmark.results.append(result)
 
-        config_path = tmp_path / "config.json"
-        config_path.write_text("{}")
-        dataset_path = tmp_path / "dataset"
-        dataset_path.mkdir()
-
-        with patch('sys.argv', [
-            'benchmark.py',
-            '--config', str(config_path),
-            '--dataset', str(dataset_path)
-        ]):
-            exit_code = main()
-
-        assert exit_code == 1
+        assert len(benchmark.results) == 2
