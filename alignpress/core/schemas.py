@@ -399,14 +399,24 @@ class LogoResultSchema(BaseModel):
     logo_name: str = Field(..., description="Logo identifier")
     found: bool = Field(..., description="Whether logo was detected")
     position_mm: Optional[Tuple[float, float]] = Field(None, description="Detected position (x, y) in mm")
+    expected_position: Optional[Tuple[float, float]] = Field(None, description="Expected position (x, y) in mm")
+    detected_position: Optional[Tuple[float, float]] = Field(None, description="Alias for position_mm")
     angle_deg: Optional[float] = Field(None, description="Detected angle in degrees")
     confidence: Optional[float] = Field(None, ge=0, le=1, description="Detection confidence")
     deviation_mm: Optional[float] = Field(None, ge=0, description="Position deviation in mm")
     angle_error_deg: Optional[float] = Field(None, description="Angle error in degrees")
-    inliers: Optional[int] = Field(None, ge=0, description="Number of RANSAC inliers")
-    reproj_error: Optional[float] = Field(None, ge=0, description="Reprojection error in pixels")
+    inliers_count: Optional[int] = Field(None, ge=0, description="Number of RANSAC inliers")
+    total_keypoints: Optional[int] = Field(None, ge=0, description="Total keypoints detected")
+    inlier_ratio: Optional[float] = Field(None, ge=0, le=1, description="Ratio of inliers to total keypoints")
+    reproj_error_px: Optional[float] = Field(None, ge=0, description="Reprojection error in pixels")
     method_used: Optional[str] = Field(None, description="Detection method used")
     processing_time_ms: Optional[float] = Field(None, ge=0, description="Processing time in milliseconds")
+
+    # Thresholds for status calculation (can be overridden)
+    perfect_deviation_mm: float = Field(default=2.0, description="Max deviation for PERFECT status")
+    perfect_angle_deg: float = Field(default=2.0, description="Max angle error for PERFECT status")
+    good_deviation_mm: float = Field(default=4.0, description="Max deviation for GOOD status")
+    good_angle_deg: float = Field(default=5.0, description="Max angle error for GOOD status")
 
     model_config = {
         "json_schema_extra": {
@@ -418,13 +428,42 @@ class LogoResultSchema(BaseModel):
                 "confidence": 0.95,
                 "deviation_mm": 1.4,
                 "angle_error_deg": 0.2,
-                "inliers": 45,
-                "reproj_error": 1.2,
+                "inliers_count": 45,
+                "total_keypoints": 52,
+                "inlier_ratio": 0.87,
+                "reproj_error_px": 1.2,
                 "method_used": "ORB+RANSAC",
                 "processing_time_ms": 15.6
             }
         }
     }
+
+    @property
+    def status(self) -> str:
+        """
+        Calculate detection status based on deviation and angle error.
+
+        Returns:
+            Status string: "PERFECT", "GOOD", "NEEDS_ADJUSTMENT", or "NOT_FOUND"
+        """
+        if not self.found:
+            return "NOT_FOUND"
+
+        if self.deviation_mm is None or self.angle_error_deg is None:
+            return "UNKNOWN"
+
+        # Check for PERFECT
+        if (self.deviation_mm <= self.perfect_deviation_mm and
+            abs(self.angle_error_deg) <= self.perfect_angle_deg):
+            return "PERFECT"
+
+        # Check for GOOD
+        if (self.deviation_mm <= self.good_deviation_mm and
+            abs(self.angle_error_deg) <= self.good_angle_deg):
+            return "GOOD"
+
+        # Otherwise needs adjustment
+        return "NEEDS_ADJUSTMENT"
 
     @property
     def is_within_tolerance(self) -> bool:

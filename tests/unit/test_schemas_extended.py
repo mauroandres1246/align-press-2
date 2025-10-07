@@ -89,7 +89,6 @@ class TestFeatureParamsSchema:
         assert params.feature_type == FeatureType.SIFT
 
 
-@pytest.mark.skip(reason="Tests use old field names (max_deviation_mm) - schema uses max_deviation instead")
 class TestThresholdsSchema:
     """Test ThresholdsSchema."""
 
@@ -97,27 +96,30 @@ class TestThresholdsSchema:
         """Test default threshold values."""
         thresholds = ThresholdsSchema()
 
-        assert thresholds.max_deviation_mm == 5.0
-        assert thresholds.max_angle_error_deg == 10.0
+        assert thresholds.position_tolerance_mm == 3.0
+        assert thresholds.angle_tolerance_deg == 5.0
         assert thresholds.min_inliers == 15
+        assert thresholds.max_reproj_error == 3.0
 
     def test_custom_thresholds(self):
         """Test custom threshold values."""
         thresholds = ThresholdsSchema(
-            max_deviation_mm=8.0,
-            max_angle_error_deg=15.0,
+            position_tolerance_mm=8.0,
+            angle_tolerance_deg=15.0,
             min_inliers=20,
-            max_reproj_error_px=4.0
+            max_reproj_error=4.0
         )
 
-        assert thresholds.max_deviation_mm == 8.0
+        assert thresholds.position_tolerance_mm == 8.0
+        assert thresholds.angle_tolerance_deg == 15.0
         assert thresholds.min_inliers == 20
+        assert thresholds.max_reproj_error == 4.0
 
     def test_threshold_validation(self):
         """Test threshold validation."""
         # Negative values should fail
         with pytest.raises(ValueError):
-            ThresholdsSchema(max_deviation_mm=-1.0)
+            ThresholdsSchema(position_tolerance_mm=-1.0)
 
 
 class TestROIConfigSchema:
@@ -146,7 +148,6 @@ class TestROIConfigSchema:
             ROIConfigSchema(width_mm=50.0, height_mm=50.0, margin_factor=0.0)
 
 
-@pytest.mark.skip(reason="Test expects 'homography' field in PlaneConfigSchema - field doesn't exist or is in CalibrationInfo")
 class TestPlaneConfigSchema:
     """Test PlaneConfigSchema."""
 
@@ -161,19 +162,6 @@ class TestPlaneConfigSchema:
         assert plane.width_mm == 300.0
         assert plane.height_mm == 200.0
         assert plane.mm_per_px == 0.5
-
-    def test_plane_with_homography(self):
-        """Test plane with homography matrix."""
-        H = np.eye(3).tolist()
-        plane = PlaneConfigSchema(
-            width_mm=300.0,
-            height_mm=200.0,
-            mm_per_px=0.5,
-            homography=H
-        )
-
-        assert plane.homography is not None
-        assert len(plane.homography) == 3
 
     def test_computed_properties(self):
         """Test computed properties."""
@@ -286,7 +274,6 @@ class TestDetectorConfigSchema:
         assert len(config.logos) == 1
 
 
-@pytest.mark.skip(reason="Test expects 'angles_deg' field - actual schema may have different field names")
 class TestFallbackParamsSchema:
     """Test FallbackParamsSchema."""
 
@@ -295,16 +282,26 @@ class TestFallbackParamsSchema:
         fallback = FallbackParamsSchema(
             enabled=True,
             scales=[0.8, 0.9, 1.0, 1.1, 1.2],
-            angles_deg=[-10, -5, 0, 5, 10],
+            angles=[-10, -5, 0, 5, 10],
             match_threshold=0.7
         )
 
         assert fallback.enabled is True
         assert len(fallback.scales) == 5
-        assert len(fallback.angles_deg) == 5
+        assert len(fallback.angles) == 5
+        assert fallback.match_threshold == 0.7
 
     def test_fallback_disabled(self):
         """Test disabled fallback."""
         fallback = FallbackParamsSchema(enabled=False)
 
         assert fallback.enabled is False
+
+    def test_fallback_defaults(self):
+        """Test default fallback values."""
+        fallback = FallbackParamsSchema()
+
+        assert fallback.enabled is True
+        assert len(fallback.scales) == 5
+        assert len(fallback.angles) == 5
+        assert fallback.match_threshold == 0.7
