@@ -1,0 +1,20 @@
+version: 1
+name: "Simple Style - 1 Logo"
+type: style
+description: "Estilo simple con un solo logo centrado"
+
+logos:
+  - name: "logo_center"
+    template_path: "templates/demo_logo_1.png"
+    position_mm: [100.0, 75.0]
+    roi:
+      width_mm: 60.0
+      height_mm: 40.0
+    detection_params:
+      match_threshold: 0.7
+      min_inliers: 10
+    tolerances:
+      position_tolerance_mm: 2.0
+      angle_tolerance_deg: 3.0
+      perfect_deviation_mm: 0.5
+      perfect_angle_deg: 1.0

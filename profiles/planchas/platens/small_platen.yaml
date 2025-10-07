@@ -1,0 +1,14 @@
+version: 1
+name: "Small Platen 200x150"
+type: platen
+description: "Plancha pequeña 200x150mm"
+
+dimensions_mm:
+  width: 200.0
+  height: 150.0
+
+calibration:
+  camera_id: 0
+  last_calibrated: 2025-01-15T10:30:00
+  homography_path: "calibration/demo.npz"
+  mm_per_px: 0.5

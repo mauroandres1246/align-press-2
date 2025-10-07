@@ -1,0 +1,35 @@
+version: 1
+name: "Demo Style - 2 Logos"
+type: style
+description: "Estilo de demostración con 2 logos"
+
+logos:
+  - name: "logo_top"
+    template_path: "templates/demo_logo_1.png"
+    position_mm: [150.0, 50.0]
+    roi:
+      width_mm: 60.0
+      height_mm: 40.0
+    detection_params:
+      match_threshold: 0.7
+      min_inliers: 10
+    tolerances:
+      position_tolerance_mm: 2.0
+      angle_tolerance_deg: 3.0
+      perfect_deviation_mm: 0.5
+      perfect_angle_deg: 1.0
+
+  - name: "logo_bottom"
+    template_path: "templates/demo_logo_2.png"
+    position_mm: [150.0, 150.0]
+    roi:
+      width_mm: 60.0
+      height_mm: 40.0
+    detection_params:
+      match_threshold: 0.7
+      min_inliers: 10
+    tolerances:
+      position_tolerance_mm: 2.0
+      angle_tolerance_deg: 3.0
+      perfect_deviation_mm: 0.5
+      perfect_angle_deg: 1.0

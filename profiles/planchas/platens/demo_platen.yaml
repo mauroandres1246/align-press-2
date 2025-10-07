@@ -1,0 +1,22 @@
+version: 1
+name: "Demo Platen 300x200"
+type: platen
+description: "Plancha de demostración 300x200mm"
+
+dimensions_mm:
+  width: 300.0
+  height: 200.0
+
+calibration:
+  camera_id: 0
+  last_calibrated: 2025-01-15T10:30:00
+  homography_path: "calibration/demo.npz"
+  mm_per_px: 0.5
+
+variants:
+  - name: "small"
+    width_mm: 200.0
+    height_mm: 150.0
+  - name: "large"
+    width_mm: 400.0
+    height_mm: 300.0
