@@ -102,8 +102,23 @@ For detailed help on each command:
     return parser
 
 
+def _add_common_arguments(parser: argparse.ArgumentParser) -> None:
+    """Add common arguments to a subcommand parser."""
+    parser.add_argument(
+        '--verbose', '-v',
+        action='store_true',
+        help='Enable verbose output'
+    )
+    parser.add_argument(
+        '--quiet', '-q',
+        action='store_true',
+        help='Suppress non-error output'
+    )
+
+
 def _add_test_arguments(parser: argparse.ArgumentParser) -> None:
     """Add arguments for test detector command."""
+    _add_common_arguments(parser)
     # Configuration
     parser.add_argument(
         '--config', '-c',
@@ -159,6 +174,7 @@ def _add_test_arguments(parser: argparse.ArgumentParser) -> None:
 
 def _add_calibrate_arguments(parser: argparse.ArgumentParser) -> None:
     """Add arguments for calibrate command."""
+    _add_common_arguments(parser)
     parser.add_argument(
         '--camera', '-c',
         type=int,
@@ -204,6 +220,7 @@ def _add_calibrate_arguments(parser: argparse.ArgumentParser) -> None:
 
 def _add_validate_arguments(parser: argparse.ArgumentParser) -> None:
     """Add arguments for validate command."""
+    _add_common_arguments(parser)
     parser.add_argument(
         'path',
         type=str,
@@ -231,6 +248,7 @@ def _add_validate_arguments(parser: argparse.ArgumentParser) -> None:
 
 def _add_benchmark_arguments(parser: argparse.ArgumentParser) -> None:
     """Add arguments for benchmark command."""
+    _add_common_arguments(parser)
     parser.add_argument(
         '--config', '-c',
         type=str,
