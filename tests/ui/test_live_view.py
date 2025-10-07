@@ -79,6 +79,7 @@ class TestLiveViewWidget:
         assert widget.camera_widget is not None
         assert widget.validate_btn is not None
         assert widget.status_label is not None
+        assert widget.metrics_panel is not None
 
     def test_widget_has_camera_widget(self, widget):
         """Test widget contains camera widget."""
@@ -236,3 +237,44 @@ class TestLiveViewIntegration:
         # Should mention expected count
         status_text = full_widget.status_label.text()
         assert len(status_text) > 0
+
+    def test_metrics_panel_created_with_logos(self, full_widget):
+        """Test metrics panel is created with correct logo count."""
+        assert full_widget.metrics_panel is not None
+        assert len(full_widget.metrics_panel.logo_widgets) == 2
+        assert "logo_1" in full_widget.metrics_panel.logo_widgets
+        assert "logo_2" in full_widget.metrics_panel.logo_widgets
+
+    def test_metrics_panel_updates_on_detection(self, full_widget):
+        """Test metrics panel updates when detection runs."""
+        # Initially all widgets should be in 'no detection' state
+        for widget in full_widget.metrics_panel.logo_widgets.values():
+            assert widget.led_label.text() == "⚫"
+
+        # Simulate detection results
+        from alignpress.core.schemas import LogoResultSchema
+
+        full_widget.current_results = {
+            "logo_1": LogoResultSchema(
+                logo_name="logo_1",
+                found=True,
+                status="PERFECT",
+                detected_position=(100.0, 100.0),
+                expected_position=(100.0, 100.0),
+                deviation_mm=0.5,
+                angle_deg=0.0,
+                angle_error_deg=0.2,
+                inliers_count=50,
+                total_keypoints=55,
+                inlier_ratio=0.91,
+                reproj_error_px=0.8
+            )
+        }
+
+        # Update metrics panel manually
+        full_widget.metrics_panel.update_results(full_widget.current_results)
+
+        # Check that logo_1 was updated
+        assert full_widget.metrics_panel.logo_widgets["logo_1"].led_label.text() == "🟢"
+        # logo_2 should still be 'no detection'
+        assert full_widget.metrics_panel.logo_widgets["logo_2"].led_label.text() == "⚫"
