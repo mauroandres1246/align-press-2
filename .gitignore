@@ -443,3 +443,7 @@ personal/
 experiments/
 sandbox/
 scratch/
+# Debug images
+debug_*.jpg
+test_image.jpg
+test_template.png
