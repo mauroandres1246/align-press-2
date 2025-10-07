@@ -67,19 +67,34 @@ class SelectionWizard(QWizard):
         self.addPage(self.size_page)
 
         # Connect page signals
+        print("🔌 Connecting platen_page.platen_selected signal...")
         self.platen_page.platen_selected.connect(self._on_platen_selected)
+        print("🔌 Connecting style_page.style_selected signal...")
         self.style_page.style_selected.connect(self._on_style_selected)
+        print("🔌 Connecting size_page.variant_selected signal...")
         self.size_page.variant_selected.connect(self._on_variant_selected)
 
         # Connect finish
+        print("🔌 Connecting wizard finished signal...")
         self.finished.connect(self._on_wizard_finished)
+        print("✅ All signals connected")
+
+        # Sync wizard state with pages (pages may have restored selections before signals were connected)
+        if self.platen_page.selected_platen:
+            print(f"🔄 Syncing platen from page: {self.platen_page.selected_platen.name}")
+            self.selected_platen = self.platen_page.selected_platen
+        if self.style_page.selected_style:
+            print(f"🔄 Syncing style from page: {self.style_page.selected_style.name}")
+            self.selected_style = self.style_page.selected_style
 
     def _on_platen_selected(self, platen: PlatenProfile) -> None:
         """Handle platen selection."""
+        print(f"🔧 Wizard received platen signal: {platen.name}")
         self.selected_platen = platen
 
     def _on_style_selected(self, style: StyleProfile) -> None:
         """Handle style selection."""
+        print(f"🔧 Wizard received style signal: {style.name}")
         self.selected_style = style
 
     def _on_variant_selected(self, variant: Optional[SizeVariant]) -> None:
@@ -88,8 +103,15 @@ class SelectionWizard(QWizard):
 
     def _on_wizard_finished(self, result: int) -> None:
         """Handle wizard finish."""
+        print(f"📋 Wizard finished callback - result: {result}")
+        print(f"   Selected platen: {self.selected_platen.name if self.selected_platen else None}")
+        print(f"   Selected style: {self.selected_style.name if self.selected_style else None}")
+        print(f"   Selected variant: {self.selected_variant.name if self.selected_variant else None}")
+
         if result == QWizard.DialogCode.Accepted:
+            print(f"   ✅ Result is Accepted")
             if self.selected_platen and self.selected_style:
+                print(f"   ✅ Have platen and style - creating composition")
                 # Create composition
                 composition = Composition(
                     platen=self.selected_platen,
@@ -97,7 +119,13 @@ class SelectionWizard(QWizard):
                     variant=self.selected_variant
                 )
 
+                print(f"   🚀 Emitting composition_created signal")
                 self.composition_created.emit(composition)
+                print(f"   ✅ Signal emitted")
+            else:
+                print(f"   ❌ Missing platen or style!")
+        else:
+            print(f"   ❌ Result is NOT Accepted (rejected/cancelled)")
 
 
 class PlatenSelectionPage(QWizardPage):
@@ -150,6 +178,9 @@ class PlatenSelectionPage(QWizardPage):
             self.info_label.setText(f"Directorio de planchas no encontrado: {platen_dir}")
             return
 
+        # Block signals during initial load
+        self.platen_list.blockSignals(True)
+
         # Load all platen files
         for platen_file in platen_dir.glob("*.yaml"):
             try:
@@ -168,7 +199,38 @@ class PlatenSelectionPage(QWizardPage):
                 platen = item.data(Qt.ItemDataRole.UserRole)
                 if platen.name == last_platen:
                     self.platen_list.setCurrentItem(item)
+                    # Manually set selected_platen since signals are blocked
+                    self.selected_platen = platen
                     break
+
+        # Unblock signals
+        self.platen_list.blockSignals(False)
+
+        # If we had a selection, update the info display (but don't emit signal yet - wizard will connect later)
+        if self.selected_platen:
+            current = self.platen_list.currentItem()
+            if current:
+                self._update_info_display(current)
+
+    def _update_info_display(self, item: QListWidgetItem) -> None:
+        """Update info display for given item."""
+        platen = item.data(Qt.ItemDataRole.UserRole)
+
+        info_text = f"<b>{platen.name}</b><br><br>"
+        info_text += f"Dimensiones: {platen.dimensions_mm['width']:.0f}mm × {platen.dimensions_mm['height']:.0f}mm<br>"
+
+        if platen.calibration:
+            age_days = platen.calibration.age_days
+            if platen.calibration.is_expired:
+                info_text += f"<font color='red'>⚠️ Calibración vencida ({age_days} días)</font><br>"
+            elif age_days > 23:  # Warning threshold
+                info_text += f"<font color='orange'>⚠️ Calibración próxima a vencer ({age_days} días)</font><br>"
+            else:
+                info_text += f"<font color='green'>✓ Calibración vigente ({age_days} días)</font><br>"
+        else:
+            info_text += "<font color='red'>⚠️ Sin calibración</font><br>"
+
+        self.info_label.setText(info_text)
 
     def _on_selection_changed(self, current: QListWidgetItem, previous: QListWidgetItem) -> None:
         """Handle selection change."""
@@ -176,27 +238,14 @@ class PlatenSelectionPage(QWizardPage):
             platen = current.data(Qt.ItemDataRole.UserRole)
             self.selected_platen = platen
 
-            # Update info
-            info_text = f"<b>{platen.name}</b><br><br>"
-            info_text += f"Dimensiones: {platen.dimensions_mm['width']:.0f}mm × {platen.dimensions_mm['height']:.0f}mm<br>"
-
-            if platen.calibration:
-                age_days = platen.calibration.age_days
-                if platen.calibration.is_expired:
-                    info_text += f"<font color='red'>⚠️ Calibración vencida ({age_days} días)</font><br>"
-                elif age_days > 23:  # Warning threshold
-                    info_text += f"<font color='orange'>⚠️ Calibración próxima a vencer ({age_days} días)</font><br>"
-                else:
-                    info_text += f"<font color='green'>✓ Calibración vigente ({age_days} días)</font><br>"
-            else:
-                info_text += "<font color='red'>⚠️ Sin calibración</font><br>"
-
-            self.info_label.setText(info_text)
+            # Update info display
+            self._update_info_display(current)
 
             # Save selection
             self.settings.setValue("last_platen", platen.name)
 
-            # Emit signal
+            # Emit signal to wizard
+            print(f"📤 PlatenPage emitting signal: {platen.name}")
             self.platen_selected.emit(platen)
 
             # Enable next button
@@ -257,6 +306,9 @@ class StyleSelectionPage(QWizardPage):
             self.info_label.setText(f"Directorio de estilos no encontrado: {style_dir}")
             return
 
+        # Block signals during initial load
+        self.style_list.blockSignals(True)
+
         # Load all style files
         for style_file in style_dir.glob("*.yaml"):
             try:
@@ -275,7 +327,37 @@ class StyleSelectionPage(QWizardPage):
                 style = item.data(Qt.ItemDataRole.UserRole)
                 if style.name == last_style:
                     self.style_list.setCurrentItem(item)
+                    # Manually set selected_style since signals are blocked
+                    self.selected_style = style
                     break
+
+        # Unblock signals
+        self.style_list.blockSignals(False)
+
+        # If we had a selection, update the info display (but don't emit signal yet - wizard will connect later)
+        if self.selected_style:
+            current = self.style_list.currentItem()
+            if current:
+                self._update_info_display(current)
+
+    def _update_info_display(self, item: QListWidgetItem) -> None:
+        """Update info display for given item."""
+        style = item.data(Qt.ItemDataRole.UserRole)
+
+        info_text = f"<b>{style.name}</b><br><br>"
+        info_text += f"Tipo: {style.type}<br>"
+        info_text += f"Logos: {len(style.logos)}<br>"
+
+        if style.description:
+            info_text += f"<br>{style.description}<br>"
+
+        # List logos
+        if style.logos:
+            info_text += "<br><b>Logos incluidos:</b><br>"
+            for logo in style.logos:
+                info_text += f"  • {logo.name} ({logo.position_mm[0]:.0f}, {logo.position_mm[1]:.0f})mm<br>"
+
+        self.info_label.setText(info_text)
 
     def _on_selection_changed(self, current: QListWidgetItem, previous: QListWidgetItem) -> None:
         """Handle selection change."""
@@ -283,26 +365,14 @@ class StyleSelectionPage(QWizardPage):
             style = current.data(Qt.ItemDataRole.UserRole)
             self.selected_style = style
 
-            # Update info
-            info_text = f"<b>{style.name}</b><br><br>"
-            info_text += f"Tipo: {style.type}<br>"
-            info_text += f"Logos: {len(style.logos)}<br>"
-
-            if style.description:
-                info_text += f"<br>{style.description}<br>"
-
-            # List logos
-            if style.logos:
-                info_text += "<br><b>Logos incluidos:</b><br>"
-                for logo in style.logos:
-                    info_text += f"  • {logo.name} ({logo.position_mm[0]:.0f}, {logo.position_mm[1]:.0f})mm<br>"
-
-            self.info_label.setText(info_text)
+            # Update info display
+            self._update_info_display(current)
 
             # Save selection
             self.settings.setValue("last_style", style.name)
 
             # Emit signal
+            print(f"📤 StylePage emitting signal: {style.name}")
             self.style_selected.emit(style)
 
             # Enable next button
@@ -439,9 +509,8 @@ class SizeSelectionPage(QWizardPage):
                 self.selected_variant = variant
 
                 # Update info
-                info_text = f"<b>{variant.name}</b><br><br>"
-                if variant.description:
-                    info_text += f"{variant.description}<br><br>"
+                info_text = f"<b>{variant.name}</b><br>"
+                info_text += f"Tamaño: {variant.size}<br><br>"
 
                 info_text += "<b>Offsets aplicados:</b><br>"
                 for logo_name, offset in variant.offsets.items():
