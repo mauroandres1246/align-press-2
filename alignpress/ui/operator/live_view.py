@@ -17,6 +17,7 @@ from PySide6.QtCore import Qt, Signal, QTimer
 from PySide6.QtGui import QPainter, QPen, QColor, QFont
 
 from alignpress.ui.widgets.camera_widget import CameraWidget
+from alignpress.ui.widgets.metrics_panel import MetricsPanel
 from alignpress.core.composition import Composition
 from alignpress.core.detector import PlanarLogoDetector
 from alignpress.core.schemas import LogoResultSchema
@@ -76,8 +77,12 @@ class LiveViewWidget(QWidget):
 
     def _setup_ui(self) -> None:
         """Setup UI components."""
-        layout = QVBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
+        main_layout = QVBoxLayout()
+        main_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Content layout (camera + metrics panel)
+        content_layout = QHBoxLayout()
+        content_layout.setContentsMargins(0, 0, 0, 0)
 
         # Camera widget with overlay
         self.camera_widget = CameraWidget(
@@ -86,7 +91,14 @@ class LiveViewWidget(QWidget):
             simulation_image=self.simulation_image
         )
         self.camera_widget.frame_received.connect(self._on_frame_received)
-        layout.addWidget(self.camera_widget)
+        content_layout.addWidget(self.camera_widget, stretch=3)
+
+        # Metrics panel (right side)
+        logo_names = list(self.composition.get_expected_positions().keys())
+        self.metrics_panel = MetricsPanel(logo_names)
+        content_layout.addWidget(self.metrics_panel, stretch=1)
+
+        main_layout.addLayout(content_layout)
 
         # Bottom toolbar
         toolbar_layout = QHBoxLayout()
@@ -121,8 +133,8 @@ class LiveViewWidget(QWidget):
         self.validate_btn.setEnabled(False)
         toolbar_layout.addWidget(self.validate_btn)
 
-        layout.addLayout(toolbar_layout)
-        self.setLayout(layout)
+        main_layout.addLayout(toolbar_layout)
+        self.setLayout(main_layout)
 
     def _initialize_detector(self) -> None:
         """Initialize detector with composition config."""
@@ -151,6 +163,10 @@ class LiveViewWidget(QWidget):
         """Stop camera and detection."""
         self.camera_widget.stop()
         self.detection_timer.stop()
+
+    def __del__(self) -> None:
+        """Destructor - ensure camera thread is stopped."""
+        self.stop()
 
     def _on_frame_received(self, frame: np.ndarray) -> None:
         """
@@ -181,6 +197,9 @@ class LiveViewWidget(QWidget):
 
             # Update camera widget display
             self._update_camera_display(frame_with_overlay)
+
+            # Update metrics panel
+            self.metrics_panel.update_results(self.current_results)
 
             # Update status
             self._update_status()

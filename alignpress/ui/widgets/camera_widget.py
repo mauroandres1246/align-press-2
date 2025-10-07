@@ -219,6 +219,10 @@ class CameraWidget(QWidget):
 
         self.fps_timer.stop()
 
+    def __del__(self) -> None:
+        """Destructor - ensure thread is stopped."""
+        self.stop()
+
     def _on_frame_captured(self, frame: np.ndarray) -> None:
         """
         Handle captured frame.
